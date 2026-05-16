@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Safe Internet App</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; max-width: 900px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+      header { margin-bottom: 1.5rem; }
+      a.button { display:inline-block; margin:0.5rem 0; padding:0.5rem 0.75rem; background:#0078d4; color:#fff; text-decoration:none; border-radius:6px }
+      ul { margin-top:0.5rem }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Safe Internet App</h1>
+      <p>Utilities and data used to build a safe list of homepages and a small dashboard.</p>
+    </header>
+
+    <main>
+      <p><a class="button" href="dashboard.html">Open Dashboard</a></p>
+
+      <section>
+        <h2>Project files</h2>
+        <ul>
+          <li><a href="urls.txt">urls.txt</a> — source URL list</li>
+          <li><a href="urls.js">urls.js</a> — JS helper used by the dashboard</li>
+          <li><a href="verified-homepages.jsonl">verified-homepages.jsonl</a> — verification output</li>
+          <li><a href="url-check-report.json">url-check-report.json</a> — last run report</li>
+          <li><a href="tools/">tools/</a> — project scripts</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Usage</h2>
+        <p>Open <a href="dashboard.html">dashboard.html</a> in a browser, or serve the folder with a local web server.</p>
+      </section>
+    </main>
+  </body>
+</html>
