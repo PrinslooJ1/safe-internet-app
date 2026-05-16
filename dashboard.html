@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safe Internet App</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #101214;
+  --panel: #1b2024;
+  --panel-soft: #22272d;
+  --line: #343b42;
+  --text: #f5f7f8;
+  --muted: #aeb8bf;
+  --accent: #2f9e8f;
+  --accent-strong: #37b6a5;
+  --warn: #e7b654;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 18px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+h1 {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  margin: 0;
+  letter-spacing: 0;
+}
+
+#status {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+#controls {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+input {
+  min-width: min(100%, 280px);
+  flex: 1 1 220px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--accent-strong);
+}
+
+button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.active {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: #061513;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  min-height: 128px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 8px;
+  position: relative;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 28px;
+}
+
+.card img {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.index {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--warn);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.link {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.link:hover {
+  color: var(--accent-strong);
+}
+
+.category {
+  justify-self: start;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.74rem;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  body { padding: 12px; }
+  header { display: block; }
+  #status { text-align: left; margin-top: 6px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Safe Internet App</h1>
+  <div id="status">Loading URLs...</div>
+</header>
+
+<div id="controls">
+  <div class="control-row">
+    <input id="search" placeholder="Search URLs or types..." autocomplete="off">
+    <button id="focusBtn" type="button">Focus</button>
+    <button id="exportBtn" type="button">Export</button>
+    <button id="importBtn" type="button">Import</button>
+  </div>
+  <div class="control-row" id="categoryButtons"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script src="urls.js"></script>
+<script>
+const FALLBACK_URLS = [
+  { url: 'https://kids.nationalgeographic.com/', category: 'Research' },
+  { url: 'https://pbskids.org/games', category: 'Games' },
+  { url: 'https://www.mathsisfun.com/', category: 'Learning' },
+  { url: 'https://www.storylineonline.net/', category: 'Reading' },
+  { url: 'https://code.org/', category: 'Coding' }
+];
+
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'search', label: 'Search' },
+  { id: 'research', label: 'Research' },
+  { id: 'reference', label: 'Reference' },
+  { id: 'learning', label: 'Learning' },
+  { id: 'news', label: 'News' },
+  { id: 'reading', label: 'Reading' },
+  { id: 'coding', label: 'Coding' },
+  { id: 'tools', label: 'Tools' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'creative', label: 'Creative' },
+  { id: 'games', label: 'Games' },
+  { id: 'mental-health', label: 'Mental Health' },
+  { id: 'health', label: 'Health' },
+  { id: 'government', label: 'Government' },
+  { id: 'shopping', label: 'Shopping' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'business', label: 'Business' },
+  { id: 'fav', label: 'Favorites' }
+];
+
+const HOST_CATEGORIES = {};
+
+let urlItems = [];
+let current = 'all';
+let focusMode = false;
+let fav = readFavorites();
+
+function readFavorites() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('fav') || '[]');
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites() {
+  localStorage.setItem('fav', JSON.stringify(fav));
+}
+
+function cleanUrl(raw) {
+  return String(raw || '').trim().replace(/\/$/, '');
+}
+
+function normalizeCategory(value) {
+  const id = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return CATEGORIES.some(category => category.id === id) ? id : '';
+}
+
+function parseUrlLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed || trimmed.startsWith('#')) return null;
+
+  const [urlPart, categoryPart] = trimmed.split(/\s*\|\s*/, 2);
+  const url = cleanUrl(urlPart);
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  return {
+    url,
+    category: normalizeCategory(categoryPart)
+  };
+}
+
+function parseUrlEntries(source) {
+  const seen = new Set();
+  const rows = Array.isArray(source)
+    ? source.map(item => {
+        if (typeof item === 'string') return parseUrlLine(item);
+        return {
+          url: cleanUrl(item?.url),
+          category: normalizeCategory(item?.category)
+        };
+      })
+    : String(source || '').split(/\r?\n/).map(parseUrlLine);
+
+  return rows.filter(entry => {
+    if (!entry || !/^https?:\/\//i.test(entry.url) || seen.has(entry.url)) return false;
+    seen.add(entry.url);
+    return true;
+  });
+}
+
+function getUrlParts(url) {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname.toLowerCase().replace(/^www\./, ''),
+      path: parsed.pathname.replace(/\/$/, '')
+    };
+  } catch {
+    return { host: url.toLowerCase(), path: '' };
+  }
+}
+
+function fallbackCategory(url) {
+  const { host, path } = getUrlParts(url);
+  const target = `${host} ${path}`;
+  if (/(game|play|toy|alchemy|guessr|seterra|puzzle|chess)/i.test(target)) return 'games';
+  if (/(psych|mind|mental|calm|headspace|brain|health|wellbeing|emotion|yoga)/i.test(target)) return 'mental-health';
+  if (/(code|coding|program|dev|stack|git|scratch|replit|glitch|microbit|blockly)/i.test(target)) return 'coding';
+  if (/(art|design|photo|draw|sketch|figma|adobe|music|craft|comic|color)/i.test(target)) return 'creative';
+  if (/(news|times|article|current-events|dogonews|snexplores)/i.test(target)) return 'news';
+  if (/(book|read|library|story|lit|poem|poetry|literacy)/i.test(target)) return 'reading';
+  if (/(google|bing|duckduckgo|search|yahoo|yandex)/i.test(target)) return 'search';
+  if (/(wikipedia|dictionary|thesaurus|reference|archive|britannica)/i.test(target)) return 'reference';
+  if (/(microsoft|apple|github|mozilla|cloudflare|linux|developer|software|technology)/i.test(target)) return 'technology';
+  if (/(government|\.gov|parliament|congress|senate)/i.test(target)) return 'government';
+  if (/(shop|store|amazon|ebay|etsy|walmart|target|retail|marketplace)/i.test(target)) return 'shopping';
+  if (/(bank|paypal|visa|finance|financial|credit|money|market)/i.test(target)) return 'finance';
+  if (/(travel|trip|hotel|flight|airline|booking|maps)/i.test(target)) return 'travel';
+  if (/(medical|medicine|clinic|hospital|doctor|wellness)/i.test(target)) return 'health';
+  if (/(tool|weather|speed|dropbox|zoom|slack|notion|openai|claude|calculator|dictionary|thesaurus|timer)/i.test(target)) return 'tools';
+  if (/(learn|school|course|academy|edu|science|museum|archive|university|lesson|worksheet|math)/i.test(target)) return 'learning';
+  return 'business';
+}
+
+function categoryFor(url) {
+  const { host } = getUrlParts(url);
+  return HOST_CATEGORIES[host] || fallbackCategory(url);
+}
+
+function categoryLabel(id) {
+  return CATEGORIES.find(category => category.id === id)?.label || 'Research';
+}
+
+function displayName(url) {
+  const { host, path } = getUrlParts(url);
+  const shortPath = path && path !== '/' ? path.replace(/^\//, '') : '';
+  return shortPath ? `${host}/${shortPath}` : host;
+}
+
+function faviconUrl(url) {
+  const { host } = getUrlParts(url);
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+}
+
+function setUrls(source) {
+  urlItems = parseUrlEntries(source).map((entry, index) => ({
+    url: entry.url,
+    index: index + 1,
+    name: displayName(entry.url),
+    category: entry.category || categoryFor(entry.url)
+  }));
+  render();
+}
+
+function categoryCounts() {
+  const counts = Object.fromEntries(CATEGORIES.map(category => [category.id, 0]));
+  counts.all = urlItems.length;
+  counts.fav = urlItems.filter(item => fav.includes(item.url)).length;
+  for (const item of urlItems) {
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  }
+  return counts;
+}
+
+function renderCategoryButtons() {
+  const counts = categoryCounts();
+  const container = document.getElementById('categoryButtons');
+  container.innerHTML = '';
+
+  for (const category of CATEGORIES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = category.id === current ? 'active' : '';
+    button.textContent = `${category.label} (${counts[category.id] || 0})`;
+    button.addEventListener('click', () => {
+      current = category.id;
+      render();
+    });
+    container.appendChild(button);
+  }
+}
+
+function filteredItems() {
+  const query = document.getElementById('search').value.trim().toLowerCase();
+
+  return urlItems.filter(item => {
+    if (current === 'fav' && !fav.includes(item.url)) return false;
+    if (current !== 'all' && current !== 'fav' && item.category !== current) return false;
+    if (focusMode && item.category === 'games') return false;
+    if (!query) return true;
+
+    const label = categoryLabel(item.category).toLowerCase();
+    return item.name.toLowerCase().includes(query)
+      || item.url.toLowerCase().includes(query)
+      || label.includes(query);
+  });
+}
+
+function render() {
+  renderCategoryButtons();
+
+  const grid = document.getElementById('grid');
+  const items = filteredItems();
+  grid.innerHTML = '';
+
+  document.getElementById('status').textContent = `${items.length} of ${urlItems.length} URLs shown`;
+  document.getElementById('focusBtn').classList.toggle('active', focusMode);
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No URLs match the current filters.';
+    grid.appendChild(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const star = document.createElement('button');
+    star.type = 'button';
+    star.className = 'star';
+    star.title = fav.includes(item.url) ? 'Remove favorite' : 'Add favorite';
+    star.textContent = fav.includes(item.url) ? '★' : '☆';
+    star.addEventListener('click', () => {
+      fav = fav.includes(item.url)
+        ? fav.filter(url => url !== item.url)
+        : [...fav, item.url];
+      saveFavorites();
+      render();
+    });
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+
+    const index = document.createElement('div');
+    index.className = 'index';
+    index.textContent = item.index;
+
+    const image = document.createElement('img');
+    image.src = faviconUrl(item.url);
+    image.alt = '';
+    image.loading = 'lazy';
+
+    top.appendChild(index);
+    top.appendChild(image);
+
+    const link = document.createElement('a');
+    link.className = 'link';
+    link.href = item.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = item.name;
+
+    const category = document.createElement('div');
+    category.className = 'category';
+    category.textContent = categoryLabel(item.category);
+
+    card.appendChild(star);
+    card.appendChild(top);
+    card.appendChild(link);
+    card.appendChild(category);
+    grid.appendChild(card);
+  }
+}
+
+function exportFav() {
+  alert(JSON.stringify(fav));
+}
+
+function importFav() {
+  const value = prompt('Paste favorites JSON');
+  if (!value) return;
+
+  try {
+    const imported = JSON.parse(value);
+    if (!Array.isArray(imported)) throw new Error('Favorites must be a JSON array.');
+    fav = imported.filter(url => /^https?:\/\//i.test(url));
+    saveFavorites();
+    render();
+  } catch (error) {
+    alert(`Could not import favorites: ${error.message}`);
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('focusBtn').addEventListener('click', () => {
+  focusMode = !focusMode;
+  render();
+});
+document.getElementById('exportBtn').addEventListener('click', exportFav);
+document.getElementById('importBtn').addEventListener('click', importFav);
+
+const generatedUrls = Array.isArray(window.SAFE_URLS) && window.SAFE_URLS.length
+  ? window.SAFE_URLS
+  : FALLBACK_URLS;
+
+setUrls(generatedUrls);
+
+fetch('urls.txt', { cache: 'no-store' })
+  .then(response => {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
+  })
+  .then(text => {
+    const entries = parseUrlEntries(text);
+    if (entries.length) setUrls(entries);
+  })
+  .catch(error => {
+    console.info('Using generated urls.js data because urls.txt could not be loaded.', error);
+  });
+</script>
+
+</body>
+</html>
+
