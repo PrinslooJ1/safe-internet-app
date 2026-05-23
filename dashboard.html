@@ -17,6 +17,7 @@
   --accent: #2f9e8f;
   --accent-strong: #37b6a5;
   --warn: #e7b654;
+  --danger: #e86f6f;
 }
 
 * { box-sizing: border-box; }
@@ -77,6 +78,31 @@ input:focus {
   border-color: var(--accent-strong);
 }
 
+select.category-select {
+  justify-self: start;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 3px 28px 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+select.category-select:hover,
+select.category-select:focus {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#databaseStatus {
+  flex: 1 1 220px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 button {
   min-height: 36px;
   padding: 8px 11px;
@@ -101,12 +127,12 @@ button.active {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
 }
 
 .card {
-  min-height: 128px;
+  min-height: 168px;
   background: var(--panel);
   border: 1px solid var(--line);
   padding: 12px;
@@ -125,7 +151,7 @@ button.active {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-right: 28px;
+  padding-right: 64px;
 }
 
 .card img {
@@ -139,10 +165,16 @@ button.active {
   font-size: 0.72rem;
 }
 
-.star {
+.card-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: flex;
+  gap: 2px;
+}
+
+.star,
+.delete {
   width: 28px;
   height: 28px;
   min-height: 0;
@@ -150,9 +182,19 @@ button.active {
   border: 0;
   background: transparent;
   cursor: pointer;
-  color: var(--warn);
   font-size: 1.1rem;
   line-height: 1;
+}
+
+.star { color: var(--warn); }
+
+.delete {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.delete:hover {
+  color: var(--danger);
 }
 
 .link {
@@ -176,6 +218,13 @@ button.active {
   font-size: 0.74rem;
 }
 
+.description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.38;
+}
+
 .empty {
   color: var(--muted);
   padding: 20px 0;
@@ -185,7 +234,7 @@ button.active {
   body { padding: 12px; }
   header { display: block; }
   #status { text-align: left; margin-top: 6px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 }
 </style>
 </head>
@@ -198,10 +247,15 @@ button.active {
 
 <div id="controls">
   <div class="control-row">
-    <input id="search" placeholder="Search URLs or types..." autocomplete="off">
+    <input id="search" placeholder="Search websites, descriptions, or types..." autocomplete="off">
     <button id="focusBtn" type="button">Focus</button>
-    <button id="exportBtn" type="button">Export</button>
-    <button id="importBtn" type="button">Import</button>
+    <button id="exportBtn" type="button">Export Data</button>
+    <button id="importBtn" type="button">Import Data</button>
+  </div>
+  <div class="control-row">
+    <input id="siteUrl" placeholder="Add website URL..." autocomplete="off" inputmode="url">
+    <button id="addSiteBtn" type="button">Add Website</button>
+    <div id="databaseStatus"></div>
   </div>
   <div class="control-row" id="categoryButtons"></div>
 </div>
@@ -241,28 +295,89 @@ const CATEGORIES = [
   { id: 'fav', label: 'Favorites' }
 ];
 
+const EDITABLE_CATEGORIES = CATEGORIES.filter(category => !['all', 'fav'].includes(category.id));
 const HOST_CATEGORIES = {};
+const DATABASE_KEY = 'safeInternetApp.database.v1';
+const DELETED_URLS_KEY = 'safeInternetApp.deletedUrls.v1';
+const FAVORITES_KEY = 'safeInternetApp.favorites.v1';
 
+let baseItems = [];
 let urlItems = [];
 let current = 'all';
 let focusMode = false;
+let databaseItems = readDatabase();
+let deletedUrls = readDeletedUrls();
 let fav = readFavorites();
 
-function readFavorites() {
+function readJsonArray(key) {
   try {
-    const stored = JSON.parse(localStorage.getItem('fav') || '[]');
+    const stored = JSON.parse(localStorage.getItem(key) || '[]');
     return Array.isArray(stored) ? stored : [];
   } catch {
     return [];
   }
 }
 
+function readFavorites() {
+  const stored = readJsonArray(FAVORITES_KEY);
+  const legacy = readJsonArray('fav');
+  return [...new Set([...stored, ...legacy].map(cleanUrl).filter(Boolean))];
+}
+
 function saveFavorites() {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(fav));
   localStorage.setItem('fav', JSON.stringify(fav));
+}
+
+function readDatabase() {
+  return parseUrlEntries(readJsonArray(DATABASE_KEY));
+}
+
+function saveDatabase() {
+  localStorage.setItem(DATABASE_KEY, JSON.stringify(databaseItems));
+}
+
+function readDeletedUrls() {
+  return [...new Set(readJsonArray(DELETED_URLS_KEY).map(cleanUrl).filter(Boolean))];
+}
+
+function saveDeletedUrls() {
+  localStorage.setItem(DELETED_URLS_KEY, JSON.stringify(deletedUrls));
 }
 
 function cleanUrl(raw) {
   return String(raw || '').trim().replace(/\/$/, '');
+}
+
+function normalizeInputUrl(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    parsed.hash = '';
+    return cleanUrl(parsed.href);
+  } catch {
+    return '';
+  }
+}
+
+function cleanText(raw) {
+  return String(raw || '').trim().replace(/\s+/g, ' ');
+}
+
+function stripHtml(raw) {
+  return cleanText(String(raw || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' '));
+}
+
+function shortenText(raw, max = 150) {
+  const text = cleanText(raw);
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).replace(/\s+\S*$/, '')}.`;
 }
 
 function normalizeCategory(value) {
@@ -280,13 +395,45 @@ function parseUrlLine(line) {
   const trimmed = String(line || '').trim();
   if (!trimmed || trimmed.startsWith('#')) return null;
 
-  const [urlPart, categoryPart] = trimmed.split(/\s*\|\s*/, 2);
+  const parts = trimmed.split(/\s*\|\s*/);
+  const [urlPart] = parts;
   const url = cleanUrl(urlPart);
   if (!/^https?:\/\//i.test(url)) return null;
 
+  let name = '';
+  let category = '';
+  let description = '';
+
+  if (parts.length >= 4) {
+    name = parts[1];
+    category = parts[2];
+    description = parts.slice(3).join(' | ');
+  } else if (parts.length === 3) {
+    const secondCategory = normalizeCategory(parts[1]);
+    const thirdCategory = normalizeCategory(parts[2]);
+    if (secondCategory && !thirdCategory) {
+      category = parts[1];
+      description = parts[2];
+    } else if (thirdCategory) {
+      name = parts[1];
+      category = parts[2];
+    } else {
+      name = parts[1];
+      description = parts[2];
+    }
+  } else if (parts.length === 2) {
+    if (normalizeCategory(parts[1])) {
+      category = parts[1];
+    } else {
+      description = parts[1];
+    }
+  }
+
   return {
     url,
-    category: normalizeCategory(categoryPart)
+    name: cleanText(name),
+    category: normalizeCategory(category),
+    description: cleanText(description)
   };
 }
 
@@ -297,7 +444,9 @@ function parseUrlEntries(source) {
         if (typeof item === 'string') return parseUrlLine(item);
         return {
           url: cleanUrl(item?.url),
-          category: normalizeCategory(item?.category)
+          name: cleanText(item?.name),
+          category: normalizeCategory(item?.category),
+          description: cleanText(item?.description)
         };
       })
     : String(source || '').split(/\r?\n/).map(parseUrlLine);
@@ -325,14 +474,14 @@ function fallbackCategory(url) {
   const { host, path } = getUrlParts(url);
   const target = `${host} ${path}`;
   if (/(game|play|toy|alchemy|guessr|seterra|puzzle|chess)/i.test(target)) return 'games';
-  if (/(psych|mind|mental|calm|headspace|brain|health|wellbeing|emotion|yoga)/i.test(target)) return 'mental-health';
+  if (/(psych|mind|mental|therapy|therapist|counsel|nimh|mhanational|helpguide|wellbeing|emotion|yoga)/i.test(target)) return 'mental-health';
   if (/(code|coding|program|dev|stack|git|scratch|replit|glitch|microbit|blockly)/i.test(target)) return 'coding';
-  if (/(art|design|photo|draw|sketch|figma|adobe|music|craft|comic|color)/i.test(target)) return 'creative';
-  if (/(news|times|article|current-events|dogonews|snexplores)/i.test(target)) return 'news';
+  if (/(art|design|photo|draw|sketch|figma|adobe|music|craft|comic|color|creative|behance|dribbble|awwwards|instructables)/i.test(target)) return 'creative';
+  if (/(news|times|article|current-events|dogonews|snexplores|guardian|bbc|npr|apnews|dw\.com|cbc)/i.test(target)) return 'news';
   if (/(book|read|library|story|lit|poem|poetry|literacy)/i.test(target)) return 'reading';
   if (/(google|bing|duckduckgo|search|yahoo|yandex)/i.test(target)) return 'search';
   if (/(wikipedia|dictionary|thesaurus|reference|archive|britannica)/i.test(target)) return 'reference';
-  if (/(microsoft|apple|github|mozilla|cloudflare|linux|developer|software|technology)/i.test(target)) return 'technology';
+  if (/(microsoft|apple|github|mozilla|cloudflare|linux|developer|software|technology|tech|wired|verge|cnet|arstechnica)/i.test(target)) return 'technology';
   if (/(government|\.gov|parliament|congress|senate)/i.test(target)) return 'government';
   if (/(shop|store|amazon|ebay|etsy|walmart|target|retail|marketplace)/i.test(target)) return 'shopping';
   if (/(bank|paypal|visa|finance|financial|credit|money|market)/i.test(target)) return 'finance';
@@ -341,6 +490,19 @@ function fallbackCategory(url) {
   if (/(tool|weather|speed|dropbox|zoom|slack|notion|openai|claude|calculator|dictionary|thesaurus|timer)/i.test(target)) return 'tools';
   if (/(learn|school|course|academy|edu|science|museum|archive|university|lesson|worksheet|math)/i.test(target)) return 'learning';
   return 'business';
+}
+
+function categoryFromResearch(url, name, description) {
+  const target = `${url} ${name} ${description}`;
+  if (/(mental health|mental illness|wellness|anxiety|depression|therapy|psychology|counseling|wellbeing)/i.test(target)) return 'mental-health';
+  if (/(breaking news|journalism|headlines|world news|latest news|newspaper|broadcaster|opinion)/i.test(target)) return 'news';
+  if (/(technology|software|startup|gadget|cybersecurity|computing|developer|artificial intelligence|tech)/i.test(target)) return 'technology';
+  if (/(creative|design|designer|illustration|photography|art|maker|craft|portfolio|web design)/i.test(target)) return 'creative';
+  if (/(course|learn|education|academy|lesson|school|training)/i.test(target)) return 'learning';
+  if (/(dictionary|encyclopedia|reference|library|archive)/i.test(target)) return 'reference';
+  if (/(book|ebook|reading|audiobook)/i.test(target)) return 'reading';
+  if (/(finance|money|invest|insurance|bank|budget)/i.test(target)) return 'finance';
+  return categoryFor(url);
 }
 
 function categoryFor(url) {
@@ -352,10 +514,29 @@ function categoryLabel(id) {
   return CATEGORIES.find(category => category.id === id)?.label || 'Research';
 }
 
+function fallbackDescription(url, name, category) {
+  const label = categoryLabel(category).toLowerCase();
+  const article = /^[aeiou]/i.test(label) ? 'an' : 'a';
+  return `${name || displayName(url)} is ${article} ${label} resource added to the safe browsing database.`;
+}
+
 function displayName(url) {
   const { host, path } = getUrlParts(url);
   const shortPath = path && path !== '/' ? path.replace(/^\//, '') : '';
   return shortPath ? `${host}/${shortPath}` : host;
+}
+
+function nameFromTitle(title, url) {
+  const cleaned = cleanText(title)
+    .replace(/\s+[-|:]\s+home$/i, '')
+    .replace(/^home\s+[-|:]\s+/i, '');
+
+  if (!cleaned) return displayName(url);
+
+  const parts = cleaned.split(/\s+(?:[|·•-]|–|—)\s+/).map(cleanText).filter(Boolean);
+  const host = getUrlParts(url).host.replace(/\.(com|org|net|gov|co|io|ai|edu|co\.za)$/i, '');
+  const matchingPart = parts.find(part => part.toLowerCase().includes(host.toLowerCase()));
+  return shortenText(matchingPart || parts[0] || cleaned, 56);
 }
 
 function faviconUrl(url) {
@@ -363,14 +544,98 @@ function faviconUrl(url) {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
 }
 
-function setUrls(source) {
-  urlItems = parseUrlEntries(source).map((entry, index) => ({
+function normalizeEntry(entry, index = 0) {
+  const url = cleanUrl(entry.url);
+  const name = cleanText(entry.name) || displayName(url);
+  const category = entry.category || categoryFor(url);
+  const description = cleanText(entry.description) || fallbackDescription(url, name, category);
+
+  return {
+    url,
+    index,
+    name,
+    category,
+    description
+  };
+}
+
+function setBaseUrls(source) {
+  baseItems = parseUrlEntries(source).map((entry, index) => ({
     url: entry.url,
     index: index + 1,
-    name: displayName(entry.url),
-    category: entry.category || categoryFor(entry.url)
+    name: entry.name || displayName(entry.url),
+    category: entry.category || categoryFor(entry.url),
+    description: entry.description || ''
   }));
+  rebuildItems();
+}
+
+function rebuildItems() {
+  const deleted = new Set(deletedUrls);
+  const byUrl = new Map();
+
+  for (const item of baseItems) {
+    if (!deleted.has(item.url)) byUrl.set(item.url, normalizeEntry(item));
+  }
+
+  for (const item of databaseItems) {
+    if (!deleted.has(item.url)) byUrl.set(item.url, normalizeEntry(item));
+  }
+
+  urlItems = [...byUrl.values()].map((item, index) => ({
+    ...item,
+    index: index + 1
+  }));
+
   render();
+}
+
+function upsertDatabaseItem(item) {
+  const normalized = normalizeEntry(item);
+  if (!normalized.url) return null;
+
+  databaseItems = [
+    ...databaseItems.filter(entry => entry.url !== normalized.url),
+    normalized
+  ];
+  deletedUrls = deletedUrls.filter(url => url !== normalized.url);
+  saveDatabase();
+  saveDeletedUrls();
+  return normalized;
+}
+
+function deleteWebsite(item) {
+  if (!confirm(`Delete ${item.name} from the website list?`)) return;
+
+  databaseItems = databaseItems.filter(entry => entry.url !== item.url);
+  if (!deletedUrls.includes(item.url)) deletedUrls.push(item.url);
+  fav = fav.filter(url => url !== item.url);
+
+  saveDatabase();
+  saveDeletedUrls();
+  saveFavorites();
+  setDatabaseStatus(`${item.name} was removed.`);
+  rebuildItems();
+}
+
+function moveWebsiteToCategory(item, categoryId) {
+  const category = normalizeCategory(categoryId);
+  if (!EDITABLE_CATEGORIES.some(entry => entry.id === category) || category === item.category) return;
+
+  const currentFallback = fallbackDescription(item.url, item.name, item.category);
+  const description = item.description === currentFallback
+    ? fallbackDescription(item.url, item.name, category)
+    : item.description;
+  const moved = upsertDatabaseItem({ ...item, category, description });
+  if (!moved) return;
+
+  if (current !== 'all' && current !== 'fav') current = category;
+  setDatabaseStatus(`${moved.name} was moved to ${categoryLabel(category)} and saved to the database.`);
+  rebuildItems();
+}
+
+function setDatabaseStatus(message) {
+  document.getElementById('databaseStatus').textContent = message || '';
 }
 
 function categoryCounts() {
@@ -413,6 +678,7 @@ function filteredItems() {
     const label = categoryLabel(item.category).toLowerCase();
     return item.name.toLowerCase().includes(query)
       || item.url.toLowerCase().includes(query)
+      || item.description.toLowerCase().includes(query)
       || label.includes(query);
   });
 }
@@ -439,18 +705,36 @@ function render() {
     const card = document.createElement('div');
     card.className = 'card';
 
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
     const star = document.createElement('button');
     star.type = 'button';
     star.className = 'star';
     star.title = fav.includes(item.url) ? 'Remove favorite' : 'Add favorite';
     star.textContent = fav.includes(item.url) ? '★' : '☆';
     star.addEventListener('click', () => {
-      fav = fav.includes(item.url)
-        ? fav.filter(url => url !== item.url)
-        : [...fav, item.url];
+      const shouldAdd = !fav.includes(item.url);
+      fav = shouldAdd
+        ? [...fav, item.url]
+        : fav.filter(url => url !== item.url);
+      if (shouldAdd) {
+        upsertDatabaseItem(item);
+        setDatabaseStatus(`${item.name} was saved to the reusable database.`);
+      }
       saveFavorites();
-      render();
+      rebuildItems();
     });
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'delete';
+    remove.title = 'Delete website';
+    remove.textContent = '×';
+    remove.addEventListener('click', () => deleteWebsite(item));
+
+    actions.appendChild(star);
+    actions.appendChild(remove);
 
     const top = document.createElement('div');
     top.className = 'card-top';
@@ -473,51 +757,196 @@ function render() {
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     link.textContent = item.name;
+    link.title = item.url;
 
-    const category = document.createElement('div');
-    category.className = 'category';
-    category.textContent = categoryLabel(item.category);
+    const category = document.createElement('select');
+    category.className = 'category-select';
+    category.title = 'Move to category';
+    category.setAttribute('aria-label', `Move ${item.name} to category`);
 
-    card.appendChild(star);
+    for (const optionCategory of EDITABLE_CATEGORIES) {
+      const option = document.createElement('option');
+      option.value = optionCategory.id;
+      option.textContent = optionCategory.label;
+      category.appendChild(option);
+    }
+
+    category.value = item.category;
+    category.addEventListener('change', event => {
+      moveWebsiteToCategory(item, event.target.value);
+    });
+
+    const description = document.createElement('p');
+    description.className = 'description';
+    description.textContent = item.description;
+
+    card.appendChild(actions);
     card.appendChild(top);
     card.appendChild(link);
     card.appendChild(category);
+    if (item.description) card.appendChild(description);
     grid.appendChild(card);
   }
 }
 
-function exportFav() {
-  alert(JSON.stringify(fav));
+function exportData() {
+  const payload = {
+    favorites: fav,
+    database: databaseItems,
+    deletedUrls
+  };
+  alert(JSON.stringify(payload));
 }
 
-function importFav() {
-  const value = prompt('Paste favorites JSON');
+function importData() {
+  const value = prompt('Paste exported database JSON');
   if (!value) return;
 
   try {
     const imported = JSON.parse(value);
-    if (!Array.isArray(imported)) throw new Error('Favorites must be a JSON array.');
-    fav = imported.filter(url => /^https?:\/\//i.test(url));
+    if (Array.isArray(imported)) {
+      fav = imported.map(cleanUrl).filter(url => /^https?:\/\//i.test(url));
+    } else {
+      fav = Array.isArray(imported.favorites)
+        ? imported.favorites.map(cleanUrl).filter(url => /^https?:\/\//i.test(url))
+        : fav;
+      databaseItems = parseUrlEntries(imported.database || databaseItems);
+      deletedUrls = Array.isArray(imported.deletedUrls)
+        ? imported.deletedUrls.map(cleanUrl).filter(Boolean)
+        : deletedUrls;
+    }
+
     saveFavorites();
-    render();
+    saveDatabase();
+    saveDeletedUrls();
+    rebuildItems();
+    setDatabaseStatus('Imported data was loaded.');
   } catch (error) {
-    alert(`Could not import favorites: ${error.message}`);
+    alert(`Could not import data: ${error.message}`);
+  }
+}
+
+function extractMetaFromDocument(doc, names) {
+  const wanted = new Set(names.map(name => name.toLowerCase()));
+  const tags = doc.querySelectorAll('meta[name], meta[property], meta[itemprop]');
+
+  for (const tag of tags) {
+    const key = tag.getAttribute('name') || tag.getAttribute('property') || tag.getAttribute('itemprop') || '';
+    if (!wanted.has(key.toLowerCase())) continue;
+    const content = tag.getAttribute('content');
+    if (content) return cleanText(content);
+  }
+
+  return '';
+}
+
+function metadataFromHtml(url, html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const title = cleanText(doc.querySelector('title')?.textContent || '');
+  const name = extractMetaFromDocument(doc, ['application-name', 'apple-mobile-web-app-title', 'og:site_name', 'og:title']) || nameFromTitle(title, url);
+  const description = extractMetaFromDocument(doc, ['description', 'og:description', 'twitter:description']);
+
+  return {
+    url,
+    name,
+    description: shortenText(description || stripHtml(doc.body?.textContent || ''), 170)
+  };
+}
+
+function parseReaderMetadata(url, text) {
+  const title = cleanText(text.match(/^Title:\s*(.+)$/im)?.[1] || '');
+  const description = cleanText(text.match(/^Description:\s*(.+)$/im)?.[1] || '');
+  const markdown = text.split(/Markdown Content:/i).slice(1).join(' ');
+  const firstParagraph = cleanText(markdown.split(/\n{2,}/).find(block => cleanText(block).length > 60) || '');
+
+  return {
+    url,
+    name: nameFromTitle(title, url),
+    description: shortenText(description || firstParagraph, 170)
+  };
+}
+
+async function fetchText(url) {
+  const response = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.text();
+}
+
+async function researchWebsite(url) {
+  const attempts = [
+    async () => metadataFromHtml(url, await fetchText(url)),
+    async () => parseReaderMetadata(url, await fetchText(`https://r.jina.ai/${url}`))
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const result = await attempt();
+      if (result.name && result.description) {
+        const category = categoryFromResearch(url, result.name, result.description);
+        return normalizeEntry({ ...result, category });
+      }
+    } catch {
+      // Try the next metadata source.
+    }
+  }
+
+  const name = displayName(url);
+  const category = categoryFor(url);
+  return normalizeEntry({
+    url,
+    name,
+    category,
+    description: fallbackDescription(url, name, category)
+  });
+}
+
+async function addWebsite() {
+  const input = document.getElementById('siteUrl');
+  const url = normalizeInputUrl(input.value);
+  if (!url) {
+    setDatabaseStatus('Enter a valid website URL.');
+    return;
+  }
+
+  if (urlItems.some(item => item.url === url)) {
+    setDatabaseStatus('That website is already in the list.');
+    return;
+  }
+
+  document.getElementById('addSiteBtn').disabled = true;
+  setDatabaseStatus('Researching website...');
+
+  try {
+    const item = await researchWebsite(url);
+    upsertDatabaseItem(item);
+    input.value = '';
+    current = item.category;
+    setDatabaseStatus(`${item.name} was added.`);
+    rebuildItems();
+  } catch (error) {
+    setDatabaseStatus(`Could not add website: ${error.message}`);
+  } finally {
+    document.getElementById('addSiteBtn').disabled = false;
   }
 }
 
 document.getElementById('search').addEventListener('input', render);
+document.getElementById('siteUrl').addEventListener('keydown', event => {
+  if (event.key === 'Enter') addWebsite();
+});
+document.getElementById('addSiteBtn').addEventListener('click', addWebsite);
 document.getElementById('focusBtn').addEventListener('click', () => {
   focusMode = !focusMode;
   render();
 });
-document.getElementById('exportBtn').addEventListener('click', exportFav);
-document.getElementById('importBtn').addEventListener('click', importFav);
+document.getElementById('exportBtn').addEventListener('click', exportData);
+document.getElementById('importBtn').addEventListener('click', importData);
 
 const generatedUrls = Array.isArray(window.SAFE_URLS) && window.SAFE_URLS.length
   ? window.SAFE_URLS
   : FALLBACK_URLS;
 
-setUrls(generatedUrls);
+setBaseUrls(generatedUrls);
 
 fetch('urls.txt', { cache: 'no-store' })
   .then(response => {
@@ -526,7 +955,7 @@ fetch('urls.txt', { cache: 'no-store' })
   })
   .then(text => {
     const entries = parseUrlEntries(text);
-    if (entries.length) setUrls(entries);
+    if (entries.length) setBaseUrls(entries);
   })
   .catch(error => {
     console.info('Using generated urls.js data because urls.txt could not be loaded.', error);
