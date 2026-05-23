@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safe Internet App</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #101214;
+  --panel: #1b2024;
+  --panel-soft: #22272d;
+  --line: #343b42;
+  --text: #f5f7f8;
+  --muted: #aeb8bf;
+  --accent: #2f9e8f;
+  --accent-strong: #37b6a5;
+  --warn: #e7b654;
+  --danger: #e86f6f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 18px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+h1 {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  margin: 0;
+  letter-spacing: 0;
+}
+
+#status {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: right;
+}
+
+#controls {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+input {
+  min-width: min(100%, 280px);
+  flex: 1 1 220px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--accent-strong);
+}
+
+select.category-select {
+  justify-self: start;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 3px 28px 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+select.category-select:hover,
+select.category-select:focus {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#databaseStatus {
+  flex: 1 1 220px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.active {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: #061513;
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  min-height: 168px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 8px;
+  position: relative;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 64px;
+}
+
+.card img {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.index {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+}
+
+.star,
+.delete {
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.star { color: var(--warn); }
+
+.delete {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.delete:hover {
+  color: var(--danger);
+}
+
+.link {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.link:hover {
+  color: var(--accent-strong);
+}
+
+.category {
+  justify-self: start;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.74rem;
+}
+
+.description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.38;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 20px 0;
+}
+
+@media (max-width: 640px) {
+  body { padding: 12px; }
+  header { display: block; }
+  #status { text-align: left; margin-top: 6px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Safe Internet App</h1>
+  <div id="status">Loading URLs from MongoDB...</div>
+</header>
+
+<div id="controls">
+  <div class="control-row">
+    <input id="search" placeholder="Search websites, descriptions, or types..." autocomplete="off">
+    <button id="focusBtn" type="button">Focus</button>
+    <button id="exportBtn" type="button">Export JSON</button>
+    <button id="exportCsvBtn" type="button">Export CSV</button>
+    <button id="importBtn" type="button">Import JSON/CSV</button>
+    <input id="importFile" class="visually-hidden" type="file" accept=".json,.csv,application/json,text/csv">
+  </div>
+  <div class="control-row">
+    <input id="siteUrl" placeholder="Add website URL..." autocomplete="off" inputmode="url">
+    <button id="addSiteBtn" type="button">Add Website</button>
+    <div id="databaseStatus"></div>
+  </div>
+  <div class="control-row" id="categoryButtons"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script src="urls.js"></script>
+<script>
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'search', label: 'Search' },
+  { id: 'research', label: 'Research' },
+  { id: 'reference', label: 'Reference' },
+  { id: 'learning', label: 'Learning' },
+  { id: 'news', label: 'News' },
+  { id: 'reading', label: 'Reading' },
+  { id: 'coding', label: 'Coding' },
+  { id: 'tools', label: 'Tools' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'creative', label: 'Creative' },
+  { id: 'games', label: 'Games' },
+  { id: 'mental-health', label: 'Mental Health' },
+  { id: 'health', label: 'Health' },
+  { id: 'government', label: 'Government' },
+  { id: 'shopping', label: 'Shopping' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'business', label: 'Business' },
+  { id: 'fav', label: 'Favorites' }
+];
+
+const EDITABLE_CATEGORIES = CATEGORIES.filter(category => !['all', 'fav'].includes(category.id));
+const HOST_CATEGORIES = {};
+
+let urlItems = [];
+let current = 'all';
+let focusMode = false;
+
+async function loadWebsitesFromDatabase() {
+  try {
+    const response = await fetch('/api/websites');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to load websites from MongoDB:', error);
+    return [];
+  }
+}
+
+async function saveWebsiteToDatabase(item) {
+  try {
+    const response = await fetch('/api/websites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: item.url,
+        name: item.name,
+        category: item.category,
+        description: item.description,
+        isFavorite: item.isFavorite
+      })
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to save website to MongoDB:', error);
+    throw error;
+  }
+}
+
+async function deleteWebsiteFromDatabase(id) {
+  try {
+    const response = await fetch(`/api/websites/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to delete website from MongoDB:', error);
+    throw error;
+  }
+}
+
+function cleanUrl(raw) {
+  return String(raw || '').trim().replace(/\/$/, '');
+}
+
+function normalizeInputUrl(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    parsed.hash = '';
+    return cleanUrl(parsed.href);
+  } catch {
+    return '';
+  }
+}
+
+function cleanText(raw) {
+  return String(raw || '').trim().replace(/\s+/g, ' ');
+}
+
+function stripHtml(raw) {
+  return cleanText(String(raw || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' '));
+}
+
+function shortenText(raw, max = 150) {
+  const text = cleanText(raw);
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).replace(/\s+\S*$/, '')}.`;
+}
+
+function normalizeCategory(value) {
+  const id = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return CATEGORIES.some(category => category.id === id) ? id : '';
+}
+
+function getUrlParts(url) {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname.toLowerCase().replace(/^www\./, ''),
+      path: parsed.pathname.replace(/\/$/, '')
+    };
+  } catch {
+    return { host: url.toLowerCase(), path: '' };
+  }
+}
+
+function fallbackCategory(url) {
+  const { host, path } = getUrlParts(url);
+  const target = `${host} ${path}`;
+  if (/(game|play|toy|alchemy|guessr|seterra|puzzle|chess)/i.test(target)) return 'games';
+  if (/(psych|mind|mental|therapy|therapist|counsel|nimh|mhanational|helpguide|wellbeing|emotion|yoga)/i.test(target)) return 'mental-health';
+  if (/(code|coding|program|dev|stack|git|scratch|replit|glitch|microbit|blockly)/i.test(target)) return 'coding';
+  if (/(art|design|photo|draw|sketch|figma|adobe|music|craft|comic|color|creative|behance|dribbble|awwwards|instructables)/i.test(target)) return 'creative';
+  if (/(news|times|article|current-events|dogonews|snexplores|guardian|bbc|npr|apnews|dw\.com|cbc)/i.test(target)) return 'news';
+  if (/(book|read|library|story|lit|poem|poetry|literacy)/i.test(target)) return 'reading';
+  if (/(google|bing|duckduckgo|search|yahoo|yandex)/i.test(target)) return 'search';
+  if (/(wikipedia|dictionary|thesaurus|reference|archive|britannica)/i.test(target)) return 'reference';
+  if (/(microsoft|apple|github|mozilla|cloudflare|linux|developer|software|technology|tech|wired|verge|cnet|arstechnica)/i.test(target)) return 'technology';
+  if (/(government|\.gov|parliament|congress|senate)/i.test(target)) return 'government';
+  if (/(shop|store|amazon|ebay|etsy|walmart|target|retail|marketplace)/i.test(target)) return 'shopping';
+  if (/(bank|paypal|visa|finance|financial|credit|money|market)/i.test(target)) return 'finance';
+  if (/(travel|trip|hotel|flight|airline|booking|maps)/i.test(target)) return 'travel';
+  if (/(medical|medicine|clinic|hospital|doctor|wellness)/i.test(target)) return 'health';
+  if (/(tool|weather|speed|dropbox|zoom|slack|notion|openai|claude|calculator|dictionary|thesaurus|timer)/i.test(target)) return 'tools';
+  if (/(learn|school|course|academy|edu|science|museum|archive|university|lesson|worksheet|math)/i.test(target)) return 'learning';
+  return 'business';
+}
+
+function categoryFromResearch(url, name, description) {
+  const target = `${url} ${name} ${description}`;
+  if (/(mental health|mental illness|wellness|anxiety|depression|therapy|psychology|counseling|wellbeing)/i.test(target)) return 'mental-health';
+  if (/(breaking news|journalism|headlines|world news|latest news|newspaper|broadcaster|opinion)/i.test(target)) return 'news';
+  if (/(technology|software|startup|gadget|cybersecurity|computing|developer|artificial intelligence|tech)/i.test(target)) return 'technology';
+  if (/(creative|design|designer|illustration|photography|art|maker|craft|portfolio|web design)/i.test(target)) return 'creative';
+  if (/(course|learn|education|academy|lesson|school|training)/i.test(target)) return 'learning';
+  if (/(dictionary|encyclopedia|reference|library|archive)/i.test(target)) return 'reference';
+  if (/(book|ebook|reading|audiobook)/i.test(target)) return 'reading';
+  if (/(finance|money|invest|insurance|bank|budget)/i.test(target)) return 'finance';
+  return categoryFor(url);
+}
+
+function categoryFor(url) {
+  const { host } = getUrlParts(url);
+  return HOST_CATEGORIES[host] || fallbackCategory(url);
+}
+
+function categoryLabel(id) {
+  return CATEGORIES.find(category => category.id === id)?.label || 'Research';
+}
+
+function fallbackDescription(url, name, category) {
+  const label = categoryLabel(category).toLowerCase();
+  const article = /^[aeiou]/i.test(label) ? 'an' : 'a';
+  return `${name || displayName(url)} is ${article} ${label} resource.`;
+}
+
+function displayName(url) {
+  const { host, path } = getUrlParts(url);
+  const shortPath = path && path !== '/' ? path.replace(/^\//, '') : '';
+  return shortPath ? `${host}/${shortPath}` : host;
+}
+
+function nameFromTitle(title, url) {
+  const cleaned = cleanText(title)
+    .replace(/\s+[-|:]\s+home$/i, '')
+    .replace(/^home\s+[-|:]\s+/i, '');
+
+  if (!cleaned) return displayName(url);
+
+  const parts = cleaned.split(/\s+(?:[|·•-]|–|—)\s+/).map(cleanText).filter(Boolean);
+  const host = getUrlParts(url).host.replace(/\.(com|org|net|gov|co|io|ai|edu|co\.za)$/i, '');
+  const matchingPart = parts.find(part => part.toLowerCase().includes(host.toLowerCase()));
+  return shortenText(matchingPart || parts[0] || cleaned, 56);
+}
+
+function faviconUrl(url) {
+  const { host } = getUrlParts(url);
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+}
+
+function normalizeEntry(entry, index = 0) {
+  const url = cleanUrl(entry.url);
+  const name = cleanText(entry.name) || displayName(url);
+  const category = entry.category || categoryFor(url);
+  const description = cleanText(entry.description) || fallbackDescription(url, name, category);
+
+  return {
+    _id: entry._id,
+    url,
+    index,
+    name,
+    category,
+    description,
+    isFavorite: entry.isFavorite || false
+  };
+}
+
+async function setBaseUrls(source) {
+  urlItems = source.map((entry, index) => normalizeEntry(entry, index + 1));
+  render();
+}
+
+function render() {
+  renderCategoryButtons();
+
+  const grid = document.getElementById('grid');
+  const items = filteredItems();
+  grid.innerHTML = '';
+
+  document.getElementById('status').textContent = `${items.length} of ${urlItems.length} URLs (from MongoDB)`;
+  document.getElementById('focusBtn').classList.toggle('active', focusMode);
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No URLs match the current filters.';
+    grid.appendChild(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const star = document.createElement('button');
+    star.type = 'button';
+    star.className = 'star';
+    star.title = item.isFavorite ? 'Remove favorite' : 'Add favorite';
+    star.textContent = item.isFavorite ? '★' : '☆';
+    star.addEventListener('click', async () => {
+      try {
+        const updated = await saveWebsiteToDatabase({
+          ...item,
+          isFavorite: !item.isFavorite
+        });
+        item.isFavorite = updated.isFavorite;
+        setDatabaseStatus(`${item.name} favorite status updated.`);
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error updating favorite: ${error.message}`);
+      }
+    });
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'delete';
+    remove.title = 'Delete website';
+    remove.textContent = '×';
+    remove.addEventListener('click', async () => {
+      if (!confirm(`Delete ${item.name} from the website list?`)) return;
+
+      try {
+        await deleteWebsiteFromDatabase(item._id);
+        urlItems = urlItems.filter(x => x._id !== item._id);
+        setDatabaseStatus(`${item.name} was removed from MongoDB.`);
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error deleting website: ${error.message}`);
+      }
+    });
+
+    actions.appendChild(star);
+    actions.appendChild(remove);
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+
+    const index = document.createElement('div');
+    index.className = 'index';
+    index.textContent = item.index;
+
+    const image = document.createElement('img');
+    image.src = faviconUrl(item.url);
+    image.alt = '';
+    image.loading = 'lazy';
+
+    top.appendChild(index);
+    top.appendChild(image);
+
+    const link = document.createElement('a');
+    link.className = 'link';
+    link.href = item.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = item.name;
+    link.title = item.url;
+
+    const category = document.createElement('select');
+    category.className = 'category-select';
+    category.title = 'Move to category';
+    category.setAttribute('aria-label', `Move ${item.name} to category`);
+
+    for (const optionCategory of EDITABLE_CATEGORIES) {
+      const option = document.createElement('option');
+      option.value = optionCategory.id;
+      option.textContent = optionCategory.label;
+      category.appendChild(option);
+    }
+
+    category.value = item.category;
+    category.addEventListener('change', async (event) => {
+      const categoryId = normalizeCategory(event.target.value);
+      if (!EDITABLE_CATEGORIES.some(entry => entry.id === categoryId) || categoryId === item.category) {
+        category.value = item.category;
+        return;
+      }
+
+      try {
+        const updated = await saveWebsiteToDatabase({
+          ...item,
+          category: categoryId
+        });
+        item.category = updated.category;
+        setDatabaseStatus(`${item.name} was moved to ${categoryLabel(categoryId)}.`);
+        if (current !== 'all' && current !== 'fav') current = categoryId;
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error updating category: ${error.message}`);
+        category.value = item.category;
+      }
+    });
+
+    const description = document.createElement('p');
+    description.className = 'description';
+    description.textContent = item.description;
+
+    card.appendChild(actions);
+    card.appendChild(top);
+    card.appendChild(link);
+    card.appendChild(category);
+    if (item.description) card.appendChild(description);
+    grid.appendChild(card);
+  }
+}
+
+function setDatabaseStatus(message) {
+  document.getElementById('databaseStatus').textContent = message || '';
+}
+
+function categoryCounts() {
+  const counts = Object.fromEntries(CATEGORIES.map(category => [category.id, 0]));
+  counts.all = urlItems.length;
+  counts.fav = urlItems.filter(item => item.isFavorite).length;
+  for (const item of urlItems) {
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  }
+  return counts;
+}
+
+function renderCategoryButtons() {
+  const counts = categoryCounts();
+  const container = document.getElementById('categoryButtons');
+  container.innerHTML = '';
+
+  for (const category of CATEGORIES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = category.id === current ? 'active' : '';
+    button.textContent = `${category.label} (${counts[category.id] || 0})`;
+    button.addEventListener('click', () => {
+      current = category.id;
+      render();
+    });
+    container.appendChild(button);
+  }
+}
+
+function filteredItems() {
+  const query = document.getElementById('search').value.trim().toLowerCase();
+
+  return urlItems.filter(item => {
+    if (current === 'fav' && !item.isFavorite) return false;
+    if (current !== 'all' && current !== 'fav' && item.category !== current) return false;
+    if (focusMode && item.category === 'games') return false;
+    if (!query) return true;
+
+    const label = categoryLabel(item.category).toLowerCase();
+    return item.name.toLowerCase().includes(query)
+      || item.url.toLowerCase().includes(query)
+      || item.description.toLowerCase().includes(query)
+      || label.includes(query);
+  });
+}
+
+const CSV_COLUMNS = ['url', 'name', 'category', 'description', 'isFavorite'];
+
+function timestampSlug() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
+
+function downloadText(filename, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportData() {
+  const payload = {
+    exported: new Date().toISOString(),
+    websites: urlItems
+  };
+  downloadText(
+    `safe-internet-data-${timestampSlug()}.json`,
+    JSON.stringify(payload, null, 2),
+    'application/json;charset=utf-8'
+  );
+  setDatabaseStatus('Exported JSON backup from MongoDB.');
+}
+
+function exportCsvData() {
+  const rows = [
+    CSV_COLUMNS,
+    ...urlItems.map(item => [
+      item.url,
+      item.name,
+      categoryLabel(item.category),
+      item.description,
+      item.isFavorite ? 'yes' : 'no'
+    ])
+  ];
+  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  downloadText(`safe-internet-list-${timestampSlug()}.csv`, csv, 'text/csv;charset=utf-8');
+  setDatabaseStatus(`Exported ${urlItems.length} websites to CSV.`);
+}
+
+async function addWebsite() {
+  const input = document.getElementById('siteUrl');
+  const url = normalizeInputUrl(input.value);
+  if (!url) {
+    setDatabaseStatus('Enter a valid website URL.');
+    return;
+  }
+
+  if (urlItems.some(item => item.url === url)) {
+    setDatabaseStatus('That website is already in the list.');
+    return;
+  }
+
+  document.getElementById('addSiteBtn').disabled = true;
+  setDatabaseStatus('Researching website...');
+
+  try {
+    const name = displayName(url);
+    const category = categoryFor(url);
+    const description = fallbackDescription(url, name, category);
+
+    const item = normalizeEntry({
+      url,
+      name,
+      category,
+      description,
+      isFavorite: false
+    });
+
+    const saved = await saveWebsiteToDatabase(item);
+    urlItems.push(normalizeEntry(saved, urlItems.length + 1));
+    input.value = '';
+    current = saved.category;
+    setDatabaseStatus(`${saved.name} was added to MongoDB.`);
+    render();
+  } catch (error) {
+    setDatabaseStatus(`Could not add website: ${error.message}`);
+  } finally {
+    document.getElementById('addSiteBtn').disabled = false;
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('siteUrl').addEventListener('keydown', event => {
+  if (event.key === 'Enter') addWebsite();
+});
+document.getElementById('addSiteBtn').addEventListener('click', addWebsite);
+document.getElementById('focusBtn').addEventListener('click', () => {
+  focusMode = !focusMode;
+  render();
+});
+document.getElementById('exportBtn').addEventListener('click', exportData);
+document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+
+(async () => {
+  const websites = await loadWebsitesFromDatabase();
+  if (websites.length) {
+    await setBaseUrls(websites);
+  } else {
+    setDatabaseStatus('No websites found in MongoDB. Start adding them!');
+  }
+})();
+</script>
+
+</body>
+</html>

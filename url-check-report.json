@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-05-16 14:38:54 +02:00",
+  "count": 2000,
+  "distinctDomains": 2000,
+  "homepageOnly": true,
+  "duplicateDomains": 0,
+  "rankingSource": "Cisco Umbrella cached top-1m.csv",
+  "liveVerifiedRowsAvailable": 404,
+  "requiredDomains": [
+    {
+      "category": "Learning",
+      "included": true,
+      "domain": "jw.org"
+    }
+  ],
+  "categories": {
+    "Learning": 16,
+    "Search": 40,
+    "Technology": 65,
+    "Tools": 13,
+    "Business": 1724,
+    "Shopping": 40,
+    "Reading": 6,
+    "News": 20,
+    "Creative": 23,
+    "Travel": 7,
+    "Government": 3,
+    "Reference": 4,
+    "Finance": 20,
+    "Research": 3,
+    "Games": 14,
+    "Health": 2
+  },
+  "note": "This generated list is homepage-only and domain-safety filtered. Full live HTTP verification can be continued with tools/build_safe_urls.ps1; the current environment timed out before 2000 live checks completed."
+}

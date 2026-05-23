@@ -1,0 +1,15 @@
+{
+  "name": "safe-internet-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Local dashboard for a curated safe website list.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.4"
+  }
+}
