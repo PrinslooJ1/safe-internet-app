@@ -1,0 +1,120 @@
+# Safe Internet App URL list
+# Scanned: 2026-05-23
+# Format: Homepage URL | Website Name | Category | Short Description
+# Omitted after failed exact-homepage checks: OverDrive and Feedbooks
+
+https://www.wikipedia.org | Wikipedia | Reference | Free volunteer-built encyclopedia covering broad topics in many languages.
+https://www.britannica.com | Britannica | Reference | Expert-edited encyclopedia articles, biographies, videos, images, and reference material.
+https://www.infoplease.com | Infoplease | Reference | Online encyclopedia, almanac, atlas, dictionary, thesaurus, and fact resource.
+https://www.refseek.com | RefSeek | Research | Academic search engine for students and researchers.
+https://www.merriam-webster.com | Merriam-Webster | Reference | Dictionary and language reference with definitions, word history, and usage help.
+https://www.oed.com | Oxford English Dictionary | Reference | Historical English dictionary with word meanings, origins, and quotations.
+https://www.vocabulary.com | Vocabulary.com | Learning | Vocabulary builder with a dictionary, quizzes, and word-learning activities.
+https://www.thesaurus.com | Thesaurus.com | Reference | Synonyms, antonyms, and word choice help for English writing.
+https://scholar.google.com | Google Scholar | Research | Search engine for scholarly articles, theses, books, abstracts, and court opinions.
+https://www.jstor.org | JSTOR | Research | Digital library for academic journals, books, images, and primary sources.
+https://www.worldcat.org | WorldCat | Research | Global library catalog for finding books, articles, music, and video nearby.
+https://www.sciencedirect.com | ScienceDirect | Research | Scientific, technical, and medical research articles and book chapters.
+https://www.researchgate.net | ResearchGate | Research | Network for discovering publications and connecting with researchers.
+https://www.imdb.com | IMDb | Reference | Database for movies, TV, cast, crew, ratings, trailers, and entertainment details.
+https://www.gutenberg.org | Project Gutenberg | Reading | Library of free public-domain ebooks in multiple formats.
+https://genius.com | Genius | Reference | Lyrics, annotations, and music knowledge contributed by a large community.
+https://todoist.com | Todoist | Tools | To-do list and task manager for personal and team planning.
+https://www.notion.so | Notion | Tools | Workspace for notes, documents, databases, projects, and team collaboration.
+https://asana.com | Asana | Tools | Project and task management platform for teams and organizations.
+https://ticktick.com | TickTick | Tools | Task list, calendar, habit tracker, and reminder app.
+https://trello.com | Trello | Tools | Visual boards and cards for organizing projects and tasks.
+https://zapier.com | Zapier | Tools | Automation platform that connects apps, workflows, and AI tools.
+https://ifttt.com | IFTTT | Tools | No-code automation service for connecting apps, devices, and online services.
+https://www.make.com | Make | Tools | Visual workflow automation platform for apps, data, and AI processes.
+https://www.brain.fm | Brain.fm | Tools | Functional music designed to support focus, relaxation, and sleep.
+https://toggl.com/track | Toggl Track | Tools | Time tracking software for projects, reports, and productivity review.
+https://www.rescuetime.com | RescueTime | Tools | Automatic time tracking and focus tools for understanding work habits.
+https://pomofocus.io | Pomofocus | Tools | Simple Pomodoro timer for focused work and study sessions.
+https://slack.com | Slack | Tools | Team messaging and collaboration workspace with channels and app integrations.
+https://workspace.google.com | Google Workspace | Tools | Google productivity and collaboration apps for email, documents, storage, and meetings.
+https://www.microsoft.com/microsoft-365 | Microsoft 365 | Tools | Microsoft productivity apps, cloud storage, email, and collaboration services.
+https://freedom.to | Freedom | Tools | Website and app blocker for scheduled focus sessions.
+https://calendly.com | Calendly | Tools | Scheduling platform for booking meetings without back-and-forth email.
+https://www.one-tab.com | OneTab | Tools | Browser extension that saves open tabs into a single organized list.
+https://bitwarden.com | Bitwarden | Tools | Password manager for storing, sharing, and using passwords and passkeys.
+https://www.amazon.com/kindle | Amazon Kindle | Reading | Kindle readers, ebooks, and reading services from Amazon.
+https://books.apple.com | Apple Books | Reading | Apple ebook and audiobook store for reading across Apple devices.
+https://play.google.com/books | Google Play Books | Reading | Store and library for ebooks, audiobooks, comics, manga, and textbooks.
+https://www.barnesandnoble.com | Barnes and Noble | Reading | Bookstore for print books, ebooks, NOOK devices, music, movies, and toys.
+https://www.kobo.com | Kobo | Reading | Rakuten Kobo store for ebooks, audiobooks, eReaders, and reading apps.
+https://archive.org | Internet Archive | Reference | Digital library for books, media, software, and archived web pages.
+https://openlibrary.org | Open Library | Reading | Open catalog for discovering, borrowing, and reading millions of books.
+https://manybooks.net | ManyBooks | Reading | Free and discounted ebooks in popular genres and common reader formats.
+https://www.planetebook.com | Planet eBook | Reading | Free classic literature ebooks for phones, tablets, eReaders, and computers.
+https://www.libbyapp.com | Libby | Reading | Library app for borrowing ebooks, audiobooks, and magazines with a library card.
+https://www.hoopladigital.com | Hoopla Digital | Reading | Library-linked service for borrowing ebooks, audiobooks, comics, music, TV, and movies.
+https://www.bookbub.com | BookBub | Reading | Ebook deal alerts and recommendations matched to reader preferences.
+https://www.freebooksy.com | Freebooksy | Reading | Daily listings of free ebooks for Kindle, Kobo, Nook, and Apple Books.
+https://www.smashwords.com | Smashwords | Reading | Indie ebook marketplace for authors, publishers, and readers.
+https://www.ebooks.com | eBooks.com | Reading | Retailer for fiction, nonfiction, academic, and professional ebooks.
+https://www.baen.com | Baen Books | Reading | Science fiction and fantasy publisher with ebooks, bundles, and author pages.
+https://bookboon.com | Bookboon | Learning | Professional development and learning content for business and workplace skills.
+https://www.coursera.org | Coursera | Learning | Online courses, certificates, and degrees from universities and companies.
+https://www.udemy.com | Udemy | Learning | Marketplace for online courses in career, technology, business, and personal skills.
+https://www.edx.org | edX | Learning | Online courses, professional certificates, and degrees from leading institutions.
+https://www.linkedin.com/learning | LinkedIn Learning | Learning | Business, technology, and creative courses connected to LinkedIn profiles.
+https://www.khanacademy.org | Khan Academy | Learning | Free lessons, practice exercises, and videos for school and lifelong learning.
+https://www.futurelearn.com | FutureLearn | Learning | Online courses and degrees from universities and education partners.
+https://www.udacity.com | Udacity | Learning | Technology training programs for programming, data, AI, and digital careers.
+https://www.codecademy.com | Codecademy | Coding | Interactive lessons for learning programming, web development, and data skills.
+https://www.ixl.com | IXL | Learning | Maths and English practice with adaptive questions and progress tracking.
+https://www.prodigygame.com | Prodigy | Games | Curriculum-aligned math practice presented through game-based learning.
+https://www.twinkl.co.za | Twinkl South Africa | Learning | Teacher-created South African classroom resources, worksheets, and planning materials.
+https://www.abcmouse.com | ABCmouse | Learning | Early learning program with reading, math, science, art, games, and songs.
+https://www.brainpop.com | BrainPOP | Learning | Animated educational videos and activities for school subjects.
+https://www.education.gov.za | Department of Basic Education | Government | South African national education department information and resources.
+https://www.gauteng.gov.za | Gauteng Provincial Government | Government | Gauteng government portal for provincial services, news, and departments.
+https://www.news24.com | News24 | News | South African news site covering local, world, business, sport, and lifestyle stories.
+https://www.iol.co.za | IOL | News | South African news, business, sport, lifestyle, and opinion coverage.
+https://mybroadband.co.za | MyBroadband | News | South African technology, broadband, telecoms, and IT news.
+https://www.dailymaverick.co.za | Daily Maverick | News | South African journalism, analysis, investigations, and opinion.
+https://www.freecodecamp.org | freeCodeCamp | Coding | Free coding lessons, certifications, articles, and developer practice projects.
+https://github.com | GitHub | Coding | Platform for hosting code, collaborating on repositories, and managing software projects.
+https://skillshop.withgoogle.com | Google Skillshop | Learning | Free Google product training, certifications, and learning paths.
+https://alison.com | Alison | Learning | Free online courses and certificates for workplace and career skills.
+https://hubspot.com | HubSpot | Business | CRM, marketing, sales, service, and content tools for businesses.
+https://skillshare.com | Skillshare | Creative | Online creative classes in design, illustration, photography, video, and productivity.
+https://www.domestika.org | Domestika | Creative | Creative community with online courses taught by design and art professionals.
+https://www.canva.com | Canva | Creative | Visual design platform for presentations, graphics, documents, video, and brand assets.
+https://ed.ted.com | TED-Ed | Learning | Animated lessons and educational videos from teachers and TED creators.
+https://www.classcentral.com | Class Central | Learning | Search engine and review site for online courses and certificates.
+https://www.daveramsey.com | Dave Ramsey | Finance | Personal finance guidance for budgeting, debt payoff, saving, and investing.
+https://www.mrmoneymustache.com | Mr. Money Mustache | Finance | Personal finance blog about frugality, investing, and early retirement.
+https://www.getrichslowly.org | Get Rich Slowly | Finance | Personal finance advice about saving, debt, investing, and money habits.
+https://www.thebalancemoney.com | The Balance Money | Finance | Personal finance articles on budgeting, investing, banking, debt, and taxes.
+https://www.thesimpledollar.com | The Simple Dollar | Finance | Personal finance information focused on saving money and financial choices.
+https://millennialmoney.com | Millennial Money | Finance | Personal finance site about earning, saving, investing, and financial independence.
+https://www.budgetsaresexy.com | Budgets Are Sexy | Finance | Personal finance blog about budgeting, FIRE, minimalism, and money habits.
+https://affordanything.com | Afford Anything | Finance | Personal finance and independence advice focused on investing and life choices.
+https://www.wisebread.com | Wise Bread | Finance | Frugal living and personal finance articles, tips, and community discussions.
+https://www.similarweb.com | Similarweb | Business | Digital intelligence platform for market, traffic, and competitor insights.
+https://www.semrush.com | Semrush | Business | SEO, PPC, content, social, and market visibility tools.
+https://www.liberty.co.za | Liberty | Finance | South African financial services company for insurance, investments, and advice.
+https://www.investopedia.com | Investopedia | Finance | Financial education, investing definitions, tutorials, reviews, and market explainers.
+https://www.nimh.nih.gov | National Institute of Mental Health | Mental Health | U.S. federal mental health research agency with information about mental disorders and treatments.
+https://www.mentalhealth.org.uk | Mental Health Foundation | Mental Health | Mental health information, prevention resources, and wellbeing advice from a UK charity.
+https://mhanational.org | Mental Health America | Mental Health | Mental health screening, education, advocacy, and support resources.
+https://www.helpguide.org | HelpGuide | Mental Health | Nonprofit mental health and wellness guides for emotional wellbeing and relationships.
+https://psychcentral.com | Psych Central | Mental Health | Mental health information about conditions, symptoms, treatment, and self-care.
+https://apnews.com | AP News | News | Independent breaking news, headlines, videos, and reporting from the Associated Press.
+https://www.bbc.com | BBC | News | Global news, sport, business, innovation, culture, travel, video, and audio.
+https://www.npr.org | NPR | News | Nonprofit news, analysis, podcasts, music, arts, science, and culture coverage.
+https://www.dw.com | Deutsche Welle | News | International news and analysis from Germany's public international broadcaster.
+https://www.theguardian.com/international | The Guardian | News | International news, sport, opinion, culture, and analysis.
+https://www.cbc.ca | CBC | News | Canadian public broadcaster with news, entertainment, sports, radio, and video.
+https://www.theverge.com | The Verge | Technology | Technology news, reviews, features, podcasts, and reporting on how tech affects life.
+https://arstechnica.com | Ars Technica | Technology | Technology, science, security, policy, hardware, and software news and analysis.
+https://techcrunch.com | TechCrunch | Technology | Startup, venture capital, Silicon Valley, and technology business news.
+https://www.wired.com | WIRED | Technology | Technology, science, culture, security, business, and future-focused reporting.
+https://www.cnet.com | CNET | Technology | Product reviews, tech news, buying advice, how-tos, and deals.
+https://www.behance.net | Behance | Creative | Creative portfolio platform for design, illustration, photography, branding, and visual projects.
+https://dribbble.com | Dribbble | Creative | Design inspiration and portfolio community for creative professionals.
+https://www.creativebloq.com | Creative Bloq | Creative | Design inspiration, creative news, tutorials, and expert tips.
+https://www.instructables.com | Instructables | Creative | Maker community with step-by-step projects, crafts, repairs, and DIY ideas.
+https://www.awwwards.com | Awwwards | Creative | Web design awards and inspiration for designers, developers, and agencies.
