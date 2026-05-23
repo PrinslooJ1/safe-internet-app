@@ -797,11 +797,26 @@ document.getElementById('exportBtn').addEventListener('click', exportData);
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
 
 (async () => {
-  const websites = await loadWebsitesFromDatabase();
-  if (websites.length) {
-    await setBaseUrls(websites);
-  } else {
-    setDatabaseStatus('No websites found in MongoDB. Start adding them!');
+  try {
+    const statusResponse = await fetch('/api/status');
+    const status = await statusResponse.json();
+
+    if (!status.status || status.status === 'disconnected') {
+      document.getElementById('status').innerHTML = '⚠️ MongoDB connection failed. Fix connection or use import.';
+      setDatabaseStatus('MongoDB is not accessible. You can still import data from CSV/JSON.');
+      return;
+    }
+
+    const websites = await loadWebsitesFromDatabase();
+    if (websites.length) {
+      await setBaseUrls(websites);
+    } else {
+      setDatabaseStatus('No websites found in MongoDB. Start adding them or import from CSV/JSON!');
+    }
+  } catch (error) {
+    console.error('Dashboard initialization error:', error);
+    document.getElementById('status').innerHTML = '⚠️ Connection error. Check console.';
+    setDatabaseStatus('Failed to load from MongoDB. Try importing CSV/JSON.');
   }
 })();
 </script>
