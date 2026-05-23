@@ -355,7 +355,7 @@ function prepareServerPayload(item) {
 
 async function syncWebsiteWithServer(item) {
   try {
-    await fetch('/api/website', {
+    await fetch('/api/websites', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prepareServerPayload(item))
