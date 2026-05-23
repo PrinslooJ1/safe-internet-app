@@ -254,7 +254,7 @@ button.active {
 
 <header>
   <h1>Safe Internet App</h1>
-  <div id="status">Loading URLs...</div>
+  <div id="status">Loading URLs from MongoDB...</div>
 </header>
 
 <div id="controls">
@@ -278,14 +278,6 @@ button.active {
 
 <script src="urls.js"></script>
 <script>
-const FALLBACK_URLS = [
-  { url: 'https://kids.nationalgeographic.com/', category: 'Research' },
-  { url: 'https://pbskids.org/games', category: 'Games' },
-  { url: 'https://www.mathsisfun.com/', category: 'Learning' },
-  { url: 'https://www.storylineonline.net/', category: 'Reading' },
-  { url: 'https://code.org/', category: 'Coding' }
-];
-
 const CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'search', label: 'Search' },
@@ -311,74 +303,52 @@ const CATEGORIES = [
 
 const EDITABLE_CATEGORIES = CATEGORIES.filter(category => !['all', 'fav'].includes(category.id));
 const HOST_CATEGORIES = {};
-const DATABASE_KEY = 'safeInternetApp.database.v1';
-const DELETED_URLS_KEY = 'safeInternetApp.deletedUrls.v1';
-const FAVORITES_KEY = 'safeInternetApp.favorites.v1';
 
-let baseItems = [];
 let urlItems = [];
 let current = 'all';
 let focusMode = false;
-let databaseItems = readDatabase();
-let deletedUrls = readDeletedUrls();
-let fav = readFavorites();
 
-function readJsonArray(key) {
+async function loadWebsitesFromDatabase() {
   try {
-    const stored = JSON.parse(localStorage.getItem(key) || '[]');
-    return Array.isArray(stored) ? stored : [];
-  } catch {
+    const response = await fetch('/api/websites');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to load websites from MongoDB:', error);
     return [];
   }
 }
 
-function readFavorites() {
-  const stored = readJsonArray(FAVORITES_KEY);
-  const legacy = readJsonArray('fav');
-  return [...new Set([...stored, ...legacy].map(cleanUrl).filter(Boolean))];
-}
-
-function saveFavorites() {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(fav));
-  localStorage.setItem('fav', JSON.stringify(fav));
-}
-
-function prepareServerPayload(item) {
-  return {
-    url: item.url,
-    name: item.name,
-    category: item.category,
-    description: item.description,
-    favorite: fav.includes(item.url)
-  };
-}
-
-async function syncWebsiteWithServer(item) {
+async function saveWebsiteToDatabase(item) {
   try {
-    await fetch('/api/websites', {
+    const response = await fetch('/api/websites', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(prepareServerPayload(item))
+      body: JSON.stringify({
+        url: item.url,
+        name: item.name,
+        category: item.category,
+        description: item.description,
+        isFavorite: item.isFavorite
+      })
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   } catch (error) {
-    console.warn('Failed to sync website to server:', error);
+    console.error('Failed to save website to MongoDB:', error);
+    throw error;
   }
 }
 
-function readDatabase() {
-  return parseUrlEntries(readJsonArray(DATABASE_KEY));
-}
-
-function saveDatabase() {
-  localStorage.setItem(DATABASE_KEY, JSON.stringify(databaseItems));
-}
-
-function readDeletedUrls() {
-  return [...new Set(readJsonArray(DELETED_URLS_KEY).map(cleanUrl).filter(Boolean))];
-}
-
-function saveDeletedUrls() {
-  localStorage.setItem(DELETED_URLS_KEY, JSON.stringify(deletedUrls));
+async function deleteWebsiteFromDatabase(id) {
+  try {
+    const response = await fetch(`/api/websites/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to delete website from MongoDB:', error);
+    throw error;
+  }
 }
 
 function cleanUrl(raw) {
@@ -425,73 +395,6 @@ function normalizeCategory(value) {
     .replace(/^-|-$/g, '');
 
   return CATEGORIES.some(category => category.id === id) ? id : '';
-}
-
-function parseUrlLine(line) {
-  const trimmed = String(line || '').trim();
-  if (!trimmed || trimmed.startsWith('#')) return null;
-
-  const parts = trimmed.split(/\s*\|\s*/);
-  const [urlPart] = parts;
-  const url = cleanUrl(urlPart);
-  if (!/^https?:\/\//i.test(url)) return null;
-
-  let name = '';
-  let category = '';
-  let description = '';
-
-  if (parts.length >= 4) {
-    name = parts[1];
-    category = parts[2];
-    description = parts.slice(3).join(' | ');
-  } else if (parts.length === 3) {
-    const secondCategory = normalizeCategory(parts[1]);
-    const thirdCategory = normalizeCategory(parts[2]);
-    if (secondCategory && !thirdCategory) {
-      category = parts[1];
-      description = parts[2];
-    } else if (thirdCategory) {
-      name = parts[1];
-      category = parts[2];
-    } else {
-      name = parts[1];
-      description = parts[2];
-    }
-  } else if (parts.length === 2) {
-    if (normalizeCategory(parts[1])) {
-      category = parts[1];
-    } else {
-      description = parts[1];
-    }
-  }
-
-  return {
-    url,
-    name: cleanText(name),
-    category: normalizeCategory(category),
-    description: cleanText(description)
-  };
-}
-
-function parseUrlEntries(source) {
-  const seen = new Set();
-  const rows = Array.isArray(source)
-    ? source.map(item => {
-        if (typeof item === 'string') return parseUrlLine(item);
-        return {
-          url: cleanUrl(item?.url),
-          name: cleanText(item?.name),
-          category: normalizeCategory(item?.category),
-          description: cleanText(item?.description)
-        };
-      })
-    : String(source || '').split(/\r?\n/).map(parseUrlLine);
-
-  return rows.filter(entry => {
-    if (!entry || !/^https?:\/\//i.test(entry.url) || seen.has(entry.url)) return false;
-    seen.add(entry.url);
-    return true;
-  });
 }
 
 function getUrlParts(url) {
@@ -553,7 +456,7 @@ function categoryLabel(id) {
 function fallbackDescription(url, name, category) {
   const label = categoryLabel(category).toLowerCase();
   const article = /^[aeiou]/i.test(label) ? 'an' : 'a';
-  return `${name || displayName(url)} is ${article} ${label} resource added to the safe browsing database.`;
+  return `${name || displayName(url)} is ${article} ${label} resource.`;
 }
 
 function displayName(url) {
@@ -587,136 +490,19 @@ function normalizeEntry(entry, index = 0) {
   const description = cleanText(entry.description) || fallbackDescription(url, name, category);
 
   return {
+    _id: entry._id,
     url,
     index,
     name,
     category,
-    description
+    description,
+    isFavorite: entry.isFavorite || false
   };
 }
 
-function setBaseUrls(source) {
-  baseItems = parseUrlEntries(source).map((entry, index) => ({
-    url: entry.url,
-    index: index + 1,
-    name: entry.name || displayName(entry.url),
-    category: entry.category || categoryFor(entry.url),
-    description: entry.description || ''
-  }));
-  rebuildItems();
-}
-
-function rebuildItems() {
-  const deleted = new Set(deletedUrls);
-  const byUrl = new Map();
-
-  for (const item of baseItems) {
-    if (!deleted.has(item.url)) byUrl.set(item.url, normalizeEntry(item));
-  }
-
-  for (const item of databaseItems) {
-    if (!deleted.has(item.url)) byUrl.set(item.url, normalizeEntry(item));
-  }
-
-  urlItems = [...byUrl.values()].map((item, index) => ({
-    ...item,
-    index: index + 1
-  }));
-
+async function setBaseUrls(source) {
+  urlItems = source.map((entry, index) => normalizeEntry(entry, index + 1));
   render();
-}
-
-function upsertDatabaseItem(item) {
-  const normalized = normalizeEntry(item);
-  if (!normalized.url) return null;
-
-  databaseItems = [
-    ...databaseItems.filter(entry => entry.url !== normalized.url),
-    normalized
-  ];
-  deletedUrls = deletedUrls.filter(url => url !== normalized.url);
-  saveDatabase();
-  saveDeletedUrls();
-  return normalized;
-}
-
-function deleteWebsite(item) {
-  if (!confirm(`Delete ${item.name} from the website list?`)) return;
-
-  databaseItems = databaseItems.filter(entry => entry.url !== item.url);
-  if (!deletedUrls.includes(item.url)) deletedUrls.push(item.url);
-  fav = fav.filter(url => url !== item.url);
-
-  saveDatabase();
-  saveDeletedUrls();
-  saveFavorites();
-  setDatabaseStatus(`${item.name} was removed.`);
-  rebuildItems();
-}
-
-function moveWebsiteToCategory(item, categoryId) {
-  const category = normalizeCategory(categoryId);
-  if (!EDITABLE_CATEGORIES.some(entry => entry.id === category) || category === item.category) return;
-
-  const currentFallback = fallbackDescription(item.url, item.name, item.category);
-  const description = item.description === currentFallback
-    ? fallbackDescription(item.url, item.name, category)
-    : item.description;
-  const moved = upsertDatabaseItem({ ...item, category, description });
-  if (!moved) return;
-
-  if (current !== 'all' && current !== 'fav') current = category;
-  setDatabaseStatus(`${moved.name} was moved to ${categoryLabel(category)} and saved to the database.`);
-  rebuildItems();
-}
-
-function setDatabaseStatus(message) {
-  document.getElementById('databaseStatus').textContent = message || '';
-}
-
-function categoryCounts() {
-  const counts = Object.fromEntries(CATEGORIES.map(category => [category.id, 0]));
-  counts.all = urlItems.length;
-  counts.fav = urlItems.filter(item => fav.includes(item.url)).length;
-  for (const item of urlItems) {
-    counts[item.category] = (counts[item.category] || 0) + 1;
-  }
-  return counts;
-}
-
-function renderCategoryButtons() {
-  const counts = categoryCounts();
-  const container = document.getElementById('categoryButtons');
-  container.innerHTML = '';
-
-  for (const category of CATEGORIES) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = category.id === current ? 'active' : '';
-    button.textContent = `${category.label} (${counts[category.id] || 0})`;
-    button.addEventListener('click', () => {
-      current = category.id;
-      render();
-    });
-    container.appendChild(button);
-  }
-}
-
-function filteredItems() {
-  const query = document.getElementById('search').value.trim().toLowerCase();
-
-  return urlItems.filter(item => {
-    if (current === 'fav' && !fav.includes(item.url)) return false;
-    if (current !== 'all' && current !== 'fav' && item.category !== current) return false;
-    if (focusMode && item.category === 'games') return false;
-    if (!query) return true;
-
-    const label = categoryLabel(item.category).toLowerCase();
-    return item.name.toLowerCase().includes(query)
-      || item.url.toLowerCase().includes(query)
-      || item.description.toLowerCase().includes(query)
-      || label.includes(query);
-  });
 }
 
 function render() {
@@ -726,7 +512,7 @@ function render() {
   const items = filteredItems();
   grid.innerHTML = '';
 
-  document.getElementById('status').textContent = `${items.length} of ${urlItems.length} URLs shown`;
+  document.getElementById('status').textContent = `${items.length} of ${urlItems.length} URLs (from MongoDB)`;
   document.getElementById('focusBtn').classList.toggle('active', focusMode);
 
   if (!items.length) {
@@ -747,20 +533,20 @@ function render() {
     const star = document.createElement('button');
     star.type = 'button';
     star.className = 'star';
-    star.title = fav.includes(item.url) ? 'Remove favorite' : 'Add favorite';
-    star.textContent = fav.includes(item.url) ? '★' : '☆';
-    star.addEventListener('click', () => {
-      const shouldAdd = !fav.includes(item.url);
-      fav = shouldAdd
-        ? [...fav, item.url]
-        : fav.filter(url => url !== item.url);
-      if (shouldAdd) {
-        upsertDatabaseItem(item);
-        setDatabaseStatus(`${item.name} was saved to the reusable database.`);
+    star.title = item.isFavorite ? 'Remove favorite' : 'Add favorite';
+    star.textContent = item.isFavorite ? '★' : '☆';
+    star.addEventListener('click', async () => {
+      try {
+        const updated = await saveWebsiteToDatabase({
+          ...item,
+          isFavorite: !item.isFavorite
+        });
+        item.isFavorite = updated.isFavorite;
+        setDatabaseStatus(`${item.name} favorite status updated.`);
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error updating favorite: ${error.message}`);
       }
-      saveFavorites();
-      syncWebsiteWithServer({ ...item, favorite: shouldAdd });
-      rebuildItems();
     });
 
     const remove = document.createElement('button');
@@ -768,7 +554,18 @@ function render() {
     remove.className = 'delete';
     remove.title = 'Delete website';
     remove.textContent = '×';
-    remove.addEventListener('click', () => deleteWebsite(item));
+    remove.addEventListener('click', async () => {
+      if (!confirm(`Delete ${item.name} from the website list?`)) return;
+
+      try {
+        await deleteWebsiteFromDatabase(item._id);
+        urlItems = urlItems.filter(x => x._id !== item._id);
+        setDatabaseStatus(`${item.name} was removed from MongoDB.`);
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error deleting website: ${error.message}`);
+      }
+    });
 
     actions.appendChild(star);
     actions.appendChild(remove);
@@ -809,8 +606,26 @@ function render() {
     }
 
     category.value = item.category;
-    category.addEventListener('change', event => {
-      moveWebsiteToCategory(item, event.target.value);
+    category.addEventListener('change', async (event) => {
+      const categoryId = normalizeCategory(event.target.value);
+      if (!EDITABLE_CATEGORIES.some(entry => entry.id === categoryId) || categoryId === item.category) {
+        category.value = item.category;
+        return;
+      }
+
+      try {
+        const updated = await saveWebsiteToDatabase({
+          ...item,
+          category: categoryId
+        });
+        item.category = updated.category;
+        setDatabaseStatus(`${item.name} was moved to ${categoryLabel(categoryId)}.`);
+        if (current !== 'all' && current !== 'fav') current = categoryId;
+        render();
+      } catch (error) {
+        setDatabaseStatus(`Error updating category: ${error.message}`);
+        category.value = item.category;
+      }
     });
 
     const description = document.createElement('p');
@@ -826,19 +641,56 @@ function render() {
   }
 }
 
-const CSV_COLUMNS = ['url', 'name', 'category', 'description', 'favorite'];
-const CSV_HEADER_ALIASES = {
-  fav: 'favorite',
-  favourite: 'favorite',
-  link: 'url',
-  notes: 'description',
-  shortdescription: 'description',
-  title: 'name',
-  type: 'category',
-  website: 'url',
-  websitename: 'name',
-  websiteurl: 'url'
-};
+function setDatabaseStatus(message) {
+  document.getElementById('databaseStatus').textContent = message || '';
+}
+
+function categoryCounts() {
+  const counts = Object.fromEntries(CATEGORIES.map(category => [category.id, 0]));
+  counts.all = urlItems.length;
+  counts.fav = urlItems.filter(item => item.isFavorite).length;
+  for (const item of urlItems) {
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  }
+  return counts;
+}
+
+function renderCategoryButtons() {
+  const counts = categoryCounts();
+  const container = document.getElementById('categoryButtons');
+  container.innerHTML = '';
+
+  for (const category of CATEGORIES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = category.id === current ? 'active' : '';
+    button.textContent = `${category.label} (${counts[category.id] || 0})`;
+    button.addEventListener('click', () => {
+      current = category.id;
+      render();
+    });
+    container.appendChild(button);
+  }
+}
+
+function filteredItems() {
+  const query = document.getElementById('search').value.trim().toLowerCase();
+
+  return urlItems.filter(item => {
+    if (current === 'fav' && !item.isFavorite) return false;
+    if (current !== 'all' && current !== 'fav' && item.category !== current) return false;
+    if (focusMode && item.category === 'games') return false;
+    if (!query) return true;
+
+    const label = categoryLabel(item.category).toLowerCase();
+    return item.name.toLowerCase().includes(query)
+      || item.url.toLowerCase().includes(query)
+      || item.description.toLowerCase().includes(query)
+      || label.includes(query);
+  });
+}
+
+const CSV_COLUMNS = ['url', 'name', 'category', 'description', 'isFavorite'];
 
 function timestampSlug() {
   return new Date().toISOString().replace(/[:.]/g, '-');
@@ -863,16 +715,15 @@ function csvEscape(value) {
 
 function exportData() {
   const payload = {
-    favorites: fav,
-    database: databaseItems,
-    deletedUrls
+    exported: new Date().toISOString(),
+    websites: urlItems
   };
   downloadText(
     `safe-internet-data-${timestampSlug()}.json`,
     JSON.stringify(payload, null, 2),
     'application/json;charset=utf-8'
   );
-  setDatabaseStatus('Exported JSON backup.');
+  setDatabaseStatus('Exported JSON backup from MongoDB.');
 }
 
 function exportCsvData() {
@@ -883,270 +734,12 @@ function exportCsvData() {
       item.name,
       categoryLabel(item.category),
       item.description,
-      fav.includes(item.url) ? 'yes' : 'no'
+      item.isFavorite ? 'yes' : 'no'
     ])
   ];
   const csv = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
   downloadText(`safe-internet-list-${timestampSlug()}.csv`, csv, 'text/csv;charset=utf-8');
   setDatabaseStatus(`Exported ${urlItems.length} websites to CSV.`);
-}
-
-function parseCsvRows(source) {
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let inQuotes = false;
-  const text = String(source || '').replace(/^\ufeff/, '');
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[index + 1] === '"') {
-          cell += '"';
-          index += 1;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        cell += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = true;
-    } else if (char === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (char === '\r') {
-      if (text[index + 1] === '\n') index += 1;
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = '';
-    } else if (char === '\n') {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = '';
-    } else {
-      cell += char;
-    }
-  }
-
-  row.push(cell);
-  rows.push(row);
-  return rows;
-}
-
-function canonicalCsvHeader(value) {
-  const key = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-
-  return CSV_COLUMNS.includes(key) ? key : CSV_HEADER_ALIASES[key] || '';
-}
-
-function truthyCsvValue(value) {
-  return /^(1|true|yes|y|favorite|favourite)$/i.test(cleanText(value));
-}
-
-function parseCsvImport(source) {
-  const rows = parseCsvRows(source).filter(row => row.some(cell => cleanText(cell)));
-  if (!rows.length) return { entries: [], favorites: [] };
-
-  const headers = rows[0].map(canonicalCsvHeader);
-  const hasHeader = headers.includes('url');
-  const dataRows = hasHeader ? rows.slice(1) : rows;
-  const entries = [];
-  const favorites = [];
-
-  for (const row of dataRows) {
-    const record = {};
-
-    if (hasHeader) {
-      headers.forEach((header, index) => {
-        if (header) record[header] = row[index] || '';
-      });
-    } else {
-      record.url = row[0] || '';
-      record.name = row[1] || '';
-      record.category = row[2] || '';
-      record.description = row[3] || '';
-      record.favorite = row[4] || '';
-    }
-
-    const url = normalizeInputUrl(record.url);
-    if (!url) continue;
-
-    entries.push({
-      url,
-      name: cleanText(record.name),
-      category: normalizeCategory(record.category),
-      description: cleanText(record.description)
-    });
-
-    if (truthyCsvValue(record.favorite)) favorites.push(url);
-  }
-
-  return {
-    entries: parseUrlEntries(entries),
-    favorites: [...new Set(favorites)]
-  };
-}
-
-function mergeImportedEntries(entries) {
-  const importedUrls = new Set(entries.map(entry => entry.url));
-  const byUrl = new Map(databaseItems.map(entry => [entry.url, entry]));
-
-  for (const entry of entries) {
-    byUrl.set(entry.url, normalizeEntry(entry));
-  }
-
-  databaseItems = [...byUrl.values()];
-  deletedUrls = deletedUrls.filter(url => !importedUrls.has(url));
-  saveDatabase();
-  saveDeletedUrls();
-}
-
-function importCsvData(text) {
-  const imported = parseCsvImport(text);
-  if (!imported.entries.length) throw new Error('No valid URL rows were found.');
-
-  mergeImportedEntries(imported.entries);
-  fav = [...new Set([...fav, ...imported.favorites])];
-  saveFavorites();
-  current = 'all';
-  rebuildItems();
-  setDatabaseStatus(`Imported ${imported.entries.length} websites from CSV.`);
-}
-
-function importJsonData(imported) {
-  if (Array.isArray(imported)) {
-    const hasEntryObjects = imported.some(item => item && typeof item === 'object' && 'url' in item);
-    if (hasEntryObjects) {
-      databaseItems = parseUrlEntries(imported).map(normalizeEntry);
-    } else {
-      fav = imported.map(cleanUrl).filter(url => /^https?:\/\//i.test(url));
-    }
-  } else {
-    fav = Array.isArray(imported.favorites)
-      ? imported.favorites.map(cleanUrl).filter(url => /^https?:\/\//i.test(url))
-      : fav;
-    databaseItems = parseUrlEntries(imported.database || imported.urls || imported.items || databaseItems).map(normalizeEntry);
-    deletedUrls = Array.isArray(imported.deletedUrls)
-      ? imported.deletedUrls.map(cleanUrl).filter(Boolean)
-      : deletedUrls;
-  }
-
-  saveFavorites();
-  saveDatabase();
-  saveDeletedUrls();
-  current = 'all';
-  rebuildItems();
-  setDatabaseStatus('Imported JSON data.');
-}
-
-function importData() {
-  const input = document.getElementById('importFile');
-  input.value = '';
-  input.click();
-}
-
-async function handleImportFile(event) {
-  const [file] = event.target.files || [];
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const trimmed = text.trim();
-    const name = file.name.toLowerCase();
-
-    if (name.endsWith('.json') || /^[{\[]/.test(trimmed)) {
-      importJsonData(JSON.parse(trimmed));
-    } else {
-      importCsvData(text);
-    }
-  } catch (error) {
-    alert(`Could not import data: ${error.message}`);
-  }
-}
-
-function extractMetaFromDocument(doc, names) {
-  const wanted = new Set(names.map(name => name.toLowerCase()));
-  const tags = doc.querySelectorAll('meta[name], meta[property], meta[itemprop]');
-
-  for (const tag of tags) {
-    const key = tag.getAttribute('name') || tag.getAttribute('property') || tag.getAttribute('itemprop') || '';
-    if (!wanted.has(key.toLowerCase())) continue;
-    const content = tag.getAttribute('content');
-    if (content) return cleanText(content);
-  }
-
-  return '';
-}
-
-function metadataFromHtml(url, html) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const title = cleanText(doc.querySelector('title')?.textContent || '');
-  const name = extractMetaFromDocument(doc, ['application-name', 'apple-mobile-web-app-title', 'og:site_name', 'og:title']) || nameFromTitle(title, url);
-  const description = extractMetaFromDocument(doc, ['description', 'og:description', 'twitter:description']);
-
-  return {
-    url,
-    name,
-    description: shortenText(description || stripHtml(doc.body?.textContent || ''), 170)
-  };
-}
-
-function parseReaderMetadata(url, text) {
-  const title = cleanText(text.match(/^Title:\s*(.+)$/im)?.[1] || '');
-  const description = cleanText(text.match(/^Description:\s*(.+)$/im)?.[1] || '');
-  const markdown = text.split(/Markdown Content:/i).slice(1).join(' ');
-  const firstParagraph = cleanText(markdown.split(/\n{2,}/).find(block => cleanText(block).length > 60) || '');
-
-  return {
-    url,
-    name: nameFromTitle(title, url),
-    description: shortenText(description || firstParagraph, 170)
-  };
-}
-
-async function fetchText(url) {
-  const response = await fetch(url, { cache: 'no-store', redirect: 'follow' });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.text();
-}
-
-async function researchWebsite(url) {
-  const attempts = [
-    async () => metadataFromHtml(url, await fetchText(url)),
-    async () => parseReaderMetadata(url, await fetchText(`https://r.jina.ai/${url}`))
-  ];
-
-  for (const attempt of attempts) {
-    try {
-      const result = await attempt();
-      if (result.name && result.description) {
-        const category = categoryFromResearch(url, result.name, result.description);
-        return normalizeEntry({ ...result, category });
-      }
-    } catch {
-      // Try the next metadata source.
-    }
-  }
-
-  const name = displayName(url);
-  const category = categoryFor(url);
-  return normalizeEntry({
-    url,
-    name,
-    category,
-    description: fallbackDescription(url, name, category)
-  });
 }
 
 async function addWebsite() {
@@ -1166,13 +759,24 @@ async function addWebsite() {
   setDatabaseStatus('Researching website...');
 
   try {
-    const item = await researchWebsite(url);
-    upsertDatabaseItem(item);
-    syncWebsiteWithServer(item);
+    const name = displayName(url);
+    const category = categoryFor(url);
+    const description = fallbackDescription(url, name, category);
+
+    const item = normalizeEntry({
+      url,
+      name,
+      category,
+      description,
+      isFavorite: false
+    });
+
+    const saved = await saveWebsiteToDatabase(item);
+    urlItems.push(normalizeEntry(saved, urlItems.length + 1));
     input.value = '';
-    current = item.category;
-    setDatabaseStatus(`${item.name} was added.`);
-    rebuildItems();
+    current = saved.category;
+    setDatabaseStatus(`${saved.name} was added to MongoDB.`);
+    render();
   } catch (error) {
     setDatabaseStatus(`Could not add website: ${error.message}`);
   } finally {
@@ -1191,29 +795,16 @@ document.getElementById('focusBtn').addEventListener('click', () => {
 });
 document.getElementById('exportBtn').addEventListener('click', exportData);
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
-document.getElementById('importBtn').addEventListener('click', importData);
-document.getElementById('importFile').addEventListener('change', handleImportFile);
 
-const generatedUrls = Array.isArray(window.SAFE_URLS) && window.SAFE_URLS.length
-  ? window.SAFE_URLS
-  : FALLBACK_URLS;
-
-setBaseUrls(generatedUrls);
-
-fetch('urls.txt', { cache: 'no-store' })
-  .then(response => {
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.text();
-  })
-  .then(text => {
-    const entries = parseUrlEntries(text);
-    if (entries.length) setBaseUrls(entries);
-  })
-  .catch(error => {
-    console.info('Using generated urls.js data because urls.txt could not be loaded.', error);
-  });
+(async () => {
+  const websites = await loadWebsitesFromDatabase();
+  if (websites.length) {
+    await setBaseUrls(websites);
+  } else {
+    setDatabaseStatus('No websites found in MongoDB. Start adding them!');
+  }
+})();
 </script>
 
 </body>
 </html>
-

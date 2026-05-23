@@ -12,10 +12,11 @@ const mongoDbName = process.env.MONGODB_DB || 'safeInternetApp';
 
 mongoose.connect(mongoUri, { dbName: mongoDbName })
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log(`Connected to MongoDB database: ${mongoDbName}`);
   })
   .catch(error => {
-    console.error('MongoDB connection failed:', error);
+    console.error('MongoDB connection failed:', error.message);
+    process.exit(1);
   });
 
 app.use(express.json());
@@ -24,5 +25,7 @@ app.use('/api', websiteRoutes);
 app.use(express.static(root));
 
 app.listen(port, host, () => {
-  console.log(`Safe Internet App is listening publicly on port ${port}`);
+  console.log(`Safe Internet App is listening on http://${host}:${port}`);
+  console.log(`Open http://localhost:${port}/dashboard.html in your browser`);
 });
+

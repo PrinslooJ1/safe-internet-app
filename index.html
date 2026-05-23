@@ -23,19 +23,30 @@
       <p><a class="button" href="dashboard.html">Open Dashboard</a></p>
 
       <section>
+        <h2>About</h2>
+        <p>This app now uses <strong>MongoDB</strong> in the cloud as the source of truth for all website data. All changes are automatically persisted to the database.</p>
+        <p>Previously stored in: <code>urls.txt</code> and browser localStorage. These files are no longer used.</p>
+      </section>
+
+      <section>
         <h2>Project files</h2>
         <ul>
-          <li><a href="urls.txt">urls.txt</a> — source URL list</li>
+          <li><a href="urls.txt">urls.txt</a> — original URL list (archived, no longer used)</li>
           <li><a href="urls.js">urls.js</a> — JS helper used by the dashboard</li>
-          <li><a href="verified-homepages.jsonl">verified-homepages.jsonl</a> — verification output</li>
-          <li><a href="url-check-report.json">url-check-report.json</a> — last run report</li>
-          <li><a href="tools/">tools/</a> — project scripts</li>
+          <li><code>server.js</code> — Node.js/Express backend connected to MongoDB</li>
+          <li><code>routes/websites.js</code> — API endpoints for website CRUD operations</li>
+          <li><code>models/Website.js</code> — MongoDB schema for websites</li>
         </ul>
       </section>
 
       <section>
         <h2>Usage</h2>
-        <p>Run <code>npm start</code> and open <a href="dashboard.html">dashboard.html</a>, or open the dashboard file directly in a browser.</p>
+        <p>Run <code>npm start</code> to start the server on port 10000. The Node.js backend will:</p>
+        <ul>
+          <li>Connect to MongoDB</li>
+          <li>Serve the dashboard HTML</li>
+          <li>Provide API endpoints for managing websites</li>
+        </ul>
       </section>
     </main>
   </body>
