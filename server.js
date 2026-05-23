@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = __dirname;
-const port = Number(process.env.PORT || 5173);
-const host = process.env.HOST || '127.0.0.1';
+const port = Number(process.env.PORT || 10000);
+const host = process.env.HOST || '0.0.0.0';
 
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -71,6 +71,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(port, host, () => {
-  console.log(`Safe Internet App running at http://${host}:${port}/`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Safe Internet App is listening publicly on port ${port}`);
 });
