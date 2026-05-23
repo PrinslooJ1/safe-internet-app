@@ -343,6 +343,28 @@ function saveFavorites() {
   localStorage.setItem('fav', JSON.stringify(fav));
 }
 
+function prepareServerPayload(item) {
+  return {
+    url: item.url,
+    name: item.name,
+    category: item.category,
+    description: item.description,
+    favorite: fav.includes(item.url)
+  };
+}
+
+async function syncWebsiteWithServer(item) {
+  try {
+    await fetch('/api/website', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prepareServerPayload(item))
+    });
+  } catch (error) {
+    console.warn('Failed to sync website to server:', error);
+  }
+}
+
 function readDatabase() {
   return parseUrlEntries(readJsonArray(DATABASE_KEY));
 }
@@ -737,6 +759,7 @@ function render() {
         setDatabaseStatus(`${item.name} was saved to the reusable database.`);
       }
       saveFavorites();
+      syncWebsiteWithServer({ ...item, favorite: shouldAdd });
       rebuildItems();
     });
 
@@ -1145,6 +1168,7 @@ async function addWebsite() {
   try {
     const item = await researchWebsite(url);
     upsertDatabaseItem(item);
+    syncWebsiteWithServer(item);
     input.value = '';
     current = item.category;
     setDatabaseStatus(`${item.name} was added.`);
