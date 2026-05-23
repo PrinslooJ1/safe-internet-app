@@ -125,6 +125,18 @@ button.active {
   font-weight: 700;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -249,8 +261,10 @@ button.active {
   <div class="control-row">
     <input id="search" placeholder="Search websites, descriptions, or types..." autocomplete="off">
     <button id="focusBtn" type="button">Focus</button>
-    <button id="exportBtn" type="button">Export Data</button>
-    <button id="importBtn" type="button">Import Data</button>
+    <button id="exportBtn" type="button">Export JSON</button>
+    <button id="exportCsvBtn" type="button">Export CSV</button>
+    <button id="importBtn" type="button">Import JSON/CSV</button>
+    <input id="importFile" class="visually-hidden" type="file" accept=".json,.csv,application/json,text/csv">
   </div>
   <div class="control-row">
     <input id="siteUrl" placeholder="Add website URL..." autocomplete="off" inputmode="url">
@@ -789,38 +803,250 @@ function render() {
   }
 }
 
+const CSV_COLUMNS = ['url', 'name', 'category', 'description', 'favorite'];
+const CSV_HEADER_ALIASES = {
+  fav: 'favorite',
+  favourite: 'favorite',
+  link: 'url',
+  notes: 'description',
+  shortdescription: 'description',
+  title: 'name',
+  type: 'category',
+  website: 'url',
+  websitename: 'name',
+  websiteurl: 'url'
+};
+
+function timestampSlug() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
+
+function downloadText(filename, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
 function exportData() {
   const payload = {
     favorites: fav,
     database: databaseItems,
     deletedUrls
   };
-  alert(JSON.stringify(payload));
+  downloadText(
+    `safe-internet-data-${timestampSlug()}.json`,
+    JSON.stringify(payload, null, 2),
+    'application/json;charset=utf-8'
+  );
+  setDatabaseStatus('Exported JSON backup.');
+}
+
+function exportCsvData() {
+  const rows = [
+    CSV_COLUMNS,
+    ...urlItems.map(item => [
+      item.url,
+      item.name,
+      categoryLabel(item.category),
+      item.description,
+      fav.includes(item.url) ? 'yes' : 'no'
+    ])
+  ];
+  const csv = rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  downloadText(`safe-internet-list-${timestampSlug()}.csv`, csv, 'text/csv;charset=utf-8');
+  setDatabaseStatus(`Exported ${urlItems.length} websites to CSV.`);
+}
+
+function parseCsvRows(source) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  const text = String(source || '').replace(/^\ufeff/, '');
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[index + 1] === '"') {
+          cell += '"';
+          index += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (char === '\r') {
+      if (text[index + 1] === '\n') index += 1;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (char === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  rows.push(row);
+  return rows;
+}
+
+function canonicalCsvHeader(value) {
+  const key = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  return CSV_COLUMNS.includes(key) ? key : CSV_HEADER_ALIASES[key] || '';
+}
+
+function truthyCsvValue(value) {
+  return /^(1|true|yes|y|favorite|favourite)$/i.test(cleanText(value));
+}
+
+function parseCsvImport(source) {
+  const rows = parseCsvRows(source).filter(row => row.some(cell => cleanText(cell)));
+  if (!rows.length) return { entries: [], favorites: [] };
+
+  const headers = rows[0].map(canonicalCsvHeader);
+  const hasHeader = headers.includes('url');
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const entries = [];
+  const favorites = [];
+
+  for (const row of dataRows) {
+    const record = {};
+
+    if (hasHeader) {
+      headers.forEach((header, index) => {
+        if (header) record[header] = row[index] || '';
+      });
+    } else {
+      record.url = row[0] || '';
+      record.name = row[1] || '';
+      record.category = row[2] || '';
+      record.description = row[3] || '';
+      record.favorite = row[4] || '';
+    }
+
+    const url = normalizeInputUrl(record.url);
+    if (!url) continue;
+
+    entries.push({
+      url,
+      name: cleanText(record.name),
+      category: normalizeCategory(record.category),
+      description: cleanText(record.description)
+    });
+
+    if (truthyCsvValue(record.favorite)) favorites.push(url);
+  }
+
+  return {
+    entries: parseUrlEntries(entries),
+    favorites: [...new Set(favorites)]
+  };
+}
+
+function mergeImportedEntries(entries) {
+  const importedUrls = new Set(entries.map(entry => entry.url));
+  const byUrl = new Map(databaseItems.map(entry => [entry.url, entry]));
+
+  for (const entry of entries) {
+    byUrl.set(entry.url, normalizeEntry(entry));
+  }
+
+  databaseItems = [...byUrl.values()];
+  deletedUrls = deletedUrls.filter(url => !importedUrls.has(url));
+  saveDatabase();
+  saveDeletedUrls();
+}
+
+function importCsvData(text) {
+  const imported = parseCsvImport(text);
+  if (!imported.entries.length) throw new Error('No valid URL rows were found.');
+
+  mergeImportedEntries(imported.entries);
+  fav = [...new Set([...fav, ...imported.favorites])];
+  saveFavorites();
+  current = 'all';
+  rebuildItems();
+  setDatabaseStatus(`Imported ${imported.entries.length} websites from CSV.`);
+}
+
+function importJsonData(imported) {
+  if (Array.isArray(imported)) {
+    const hasEntryObjects = imported.some(item => item && typeof item === 'object' && 'url' in item);
+    if (hasEntryObjects) {
+      databaseItems = parseUrlEntries(imported).map(normalizeEntry);
+    } else {
+      fav = imported.map(cleanUrl).filter(url => /^https?:\/\//i.test(url));
+    }
+  } else {
+    fav = Array.isArray(imported.favorites)
+      ? imported.favorites.map(cleanUrl).filter(url => /^https?:\/\//i.test(url))
+      : fav;
+    databaseItems = parseUrlEntries(imported.database || imported.urls || imported.items || databaseItems).map(normalizeEntry);
+    deletedUrls = Array.isArray(imported.deletedUrls)
+      ? imported.deletedUrls.map(cleanUrl).filter(Boolean)
+      : deletedUrls;
+  }
+
+  saveFavorites();
+  saveDatabase();
+  saveDeletedUrls();
+  current = 'all';
+  rebuildItems();
+  setDatabaseStatus('Imported JSON data.');
 }
 
 function importData() {
-  const value = prompt('Paste exported database JSON');
-  if (!value) return;
+  const input = document.getElementById('importFile');
+  input.value = '';
+  input.click();
+}
+
+async function handleImportFile(event) {
+  const [file] = event.target.files || [];
+  if (!file) return;
 
   try {
-    const imported = JSON.parse(value);
-    if (Array.isArray(imported)) {
-      fav = imported.map(cleanUrl).filter(url => /^https?:\/\//i.test(url));
-    } else {
-      fav = Array.isArray(imported.favorites)
-        ? imported.favorites.map(cleanUrl).filter(url => /^https?:\/\//i.test(url))
-        : fav;
-      databaseItems = parseUrlEntries(imported.database || databaseItems);
-      deletedUrls = Array.isArray(imported.deletedUrls)
-        ? imported.deletedUrls.map(cleanUrl).filter(Boolean)
-        : deletedUrls;
-    }
+    const text = await file.text();
+    const trimmed = text.trim();
+    const name = file.name.toLowerCase();
 
-    saveFavorites();
-    saveDatabase();
-    saveDeletedUrls();
-    rebuildItems();
-    setDatabaseStatus('Imported data was loaded.');
+    if (name.endsWith('.json') || /^[{\[]/.test(trimmed)) {
+      importJsonData(JSON.parse(trimmed));
+    } else {
+      importCsvData(text);
+    }
   } catch (error) {
     alert(`Could not import data: ${error.message}`);
   }
@@ -940,7 +1166,9 @@ document.getElementById('focusBtn').addEventListener('click', () => {
   render();
 });
 document.getElementById('exportBtn').addEventListener('click', exportData);
+document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
 document.getElementById('importBtn').addEventListener('click', importData);
+document.getElementById('importFile').addEventListener('change', handleImportFile);
 
 const generatedUrls = Array.isArray(window.SAFE_URLS) && window.SAFE_URLS.length
   ? window.SAFE_URLS
