@@ -2,6 +2,29 @@ const express = require('express');
 const router = express.Router();
 const Website = require('../models/Website');
 
+function cleanText(raw) {
+  return String(raw || '').trim().replace(/\s+/g, ' ');
+}
+
+function parseHtmlMetadata(html) {
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch ? cleanText(titleMatch[1]) : '';
+  const descriptionMatch = html.match(/<meta\s+[^>]*(?:name|property)=['"](?:description|og:description|twitter:description)['"][^>]*content=['"]([^'"]*)['"][^>]*>/i);
+  const description = descriptionMatch ? cleanText(descriptionMatch[1]) : '';
+  return { title, description };
+}
+
+async function fetchUrlMetadata(url) {
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; SafeInternetApp/1.0; +https://example.com)'
+    }
+  });
+
+  const html = await response.text();
+  return parseHtmlMetadata(html);
+}
+
 router.get('/websites', async (req, res) => {
   try {
     const sites = await Website.find().sort({ createdAt: -1 });
@@ -9,6 +32,66 @@ router.get('/websites', async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch websites:', error);
     res.status(500).json({ error: 'Could not retrieve websites from database.' });
+  }
+});
+
+router.get('/websites/preview', async (req, res) => {
+  const url = String(req.query.url || '').trim();
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url query parameter.' });
+  }
+
+  try {
+    const { title, description } = await fetchUrlMetadata(url);
+    const name = title || '';
+    res.json({ name, description: description || '' });
+  } catch (error) {
+    console.error('Preview fetch failed:', error.message || error);
+    res.status(502).json({ error: 'Unable to fetch website metadata.' });
+  }
+});
+
+router.post('/websites/import', async (req, res) => {
+  const websites = Array.isArray(req.body.websites) ? req.body.websites : [];
+  const validWebsites = websites.map(raw => {
+    const url = String(raw.url || '').trim();
+    return {
+      url,
+      name: cleanText(raw.name) || url,
+      category: String(raw.category || '').trim(),
+      description: cleanText(raw.description) || '',
+      isFavorite: Boolean(raw.isFavorite)
+    };
+  }).filter(item => item.url && /^https?:\/\//i.test(item.url));
+
+  if (!validWebsites.length) {
+    return res.status(400).json({ error: 'No valid websites found for import.' });
+  }
+
+  try {
+    const operations = validWebsites.map(site => ({
+      updateOne: {
+        filter: { url: site.url },
+        update: {
+          $set: {
+            name: site.name,
+            category: site.category,
+            description: site.description,
+            isFavorite: site.isFavorite
+          }
+        },
+        upsert: true
+      }
+    }));
+
+    await Website.bulkWrite(operations);
+    const urls = validWebsites.map(site => site.url);
+    const savedWebsites = await Website.find({ url: { $in: urls } });
+
+    res.status(201).json({ imported: savedWebsites.length, websites: savedWebsites });
+  } catch (error) {
+    console.error('Failed to import websites:', error);
+    res.status(500).json({ error: 'Import failed while writing to database.' });
   }
 });
 

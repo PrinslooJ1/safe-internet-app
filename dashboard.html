@@ -264,7 +264,7 @@ button.active {
     <button id="exportBtn" type="button">Export JSON</button>
     <button id="exportCsvBtn" type="button">Export CSV</button>
     <button id="importBtn" type="button">Import JSON/CSV</button>
-    <input id="importFile" class="visually-hidden" type="file" accept=".json,.csv,application/json,text/csv">
+    <input id="importFile" class="visually-hidden" type="file" accept=".json,.csv,application/json,text/csv" aria-label="Choose import file">
   </div>
   <div class="control-row">
     <input id="siteUrl" placeholder="Add website URL..." autocomplete="off" inputmode="url">
@@ -742,6 +742,128 @@ function exportCsvData() {
   setDatabaseStatus(`Exported ${urlItems.length} websites to CSV.`);
 }
 
+async function fetchWebsiteMetadata(url) {
+  try {
+    const response = await fetch(`/api/websites/preview?url=${encodeURIComponent(url)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const metadata = await response.json();
+    return {
+      name: metadata.name || displayName(url),
+      description: metadata.description || fallbackDescription(url, metadata.name || displayName(url), categoryFor(url))
+    };
+  } catch (error) {
+    console.warn('Website metadata lookup failed:', error);
+    const fallbackName = displayName(url);
+    return {
+      name: fallbackName,
+      description: fallbackDescription(url, fallbackName, categoryFor(url))
+    };
+  }
+}
+
+function normalizeImportCategory(rawCategory) {
+  const normalized = normalizeCategory(rawCategory);
+  if (normalized) return normalized;
+  const label = String(rawCategory || '').trim().toLowerCase();
+  const match = CATEGORIES.find(category => category.label.toLowerCase() === label);
+  return match ? match.id : '';
+}
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+
+  const header = lines[0].split(',').map(col => col.trim().toLowerCase());
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let j = 0; j < line.length; j += 1) {
+      const char = line[j];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current);
+
+    const row = {};
+    for (let k = 0; k < header.length; k += 1) {
+      row[header[k]] = values[k] ? values[k].trim().replace(/^"|"$/g, '') : '';
+    }
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+async function importWebsitesFromFile(file) {
+  const text = await file.text();
+  let websites = [];
+
+  if (file.name.toLowerCase().endsWith('.json')) {
+    const payload = JSON.parse(text);
+    websites = Array.isArray(payload) ? payload : Array.isArray(payload.websites) ? payload.websites : [];
+  } else if (file.name.toLowerCase().endsWith('.csv')) {
+    websites = parseCsv(text);
+  } else {
+    throw new Error('Unsupported file type. Use JSON or CSV.');
+  }
+
+  return websites.map(entry => ({
+    url: normalizeInputUrl(entry.url || entry.URL || ''),
+    name: cleanText(entry.name || entry.Name || ''),
+    category: normalizeImportCategory(entry.category || entry.Category || entry.type || ''),
+    description: cleanText(entry.description || entry.Description || ''),
+    isFavorite: String(entry.isFavorite || entry.favorite || '').toLowerCase() === 'yes' || String(entry.isFavorite || entry.favorite || '').toLowerCase() === 'true'
+  })).filter(item => item.url);
+}
+
+async function handleImportFile(event) {
+  const input = event.target;
+  if (!input.files || !input.files.length) return;
+
+  const file = input.files[0];
+  input.value = '';
+  setDatabaseStatus(`Importing ${file.name}...`);
+
+  try {
+    const websites = await importWebsitesFromFile(file);
+    if (!websites.length) {
+      setDatabaseStatus('No valid records found in the import file.');
+      return;
+    }
+
+    const response = await fetch('/api/websites/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ websites })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (Array.isArray(result.websites)) {
+      await setBaseUrls(result.websites);
+    }
+    setDatabaseStatus(`Imported ${result.imported || 0} websites from ${file.name}.`);
+  } catch (error) {
+    console.error('Import failed:', error);
+    setDatabaseStatus(`Import failed: ${error.message}`);
+  }
+}
+
 async function addWebsite() {
   const input = document.getElementById('siteUrl');
   const url = normalizeInputUrl(input.value);
@@ -759,13 +881,13 @@ async function addWebsite() {
   setDatabaseStatus('Researching website...');
 
   try {
-    const name = displayName(url);
+    const metadata = await fetchWebsiteMetadata(url);
     const category = categoryFor(url);
-    const description = fallbackDescription(url, name, category);
+    const description = metadata.description || fallbackDescription(url, metadata.name, category);
 
     const item = normalizeEntry({
       url,
-      name,
+      name: metadata.name,
       category,
       description,
       isFavorite: false
@@ -795,6 +917,8 @@ document.getElementById('focusBtn').addEventListener('click', () => {
 });
 document.getElementById('exportBtn').addEventListener('click', exportData);
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', handleImportFile);
 
 (async () => {
   try {

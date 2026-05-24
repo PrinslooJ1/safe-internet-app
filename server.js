@@ -12,38 +12,45 @@ const mongoDbName = process.env.MONGODB_DB || 'safeInternetApp';
 
 let mongoConnected = false;
 
-mongoose.connect(mongoUri, { dbName: mongoDbName })
-  .then(() => {
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUri, {
+      dbName: mongoDbName,
+      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000
+    });
     mongoConnected = true;
     console.log(`✓ Connected to MongoDB database: ${mongoDbName}`);
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('✗ MongoDB connection failed:', error.message);
     console.error('  → Check your .env file and MongoDB Atlas IP allowlist');
     console.error('  → Or ensure you have internet connectivity to the cluster');
     mongoConnected = false;
-  });
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.get('/api/status', (req, res) => {
-  res.json({
-    status: mongoConnected ? 'connected' : 'disconnected',
-    message: mongoConnected ? 'MongoDB connected' : 'MongoDB connection failed'
-  });
-});
-
-app.use('/api', websiteRoutes);
-app.use(express.static(root));
-
-app.listen(port, host, () => {
-  console.log(`Safe Internet App is listening on http://${host}:${port}`);
-  console.log(`Open http://localhost:${port}/dashboard.html in your browser`);
-  if (!mongoConnected) {
-    console.log('\n⚠️  WARNING: MongoDB is not connected');
-    console.log('   The app will not function until MongoDB is accessible.');
   }
-});
+
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  app.get('/api/status', (req, res) => {
+    res.json({
+      status: mongoConnected ? 'connected' : 'disconnected',
+      message: mongoConnected ? 'MongoDB connected' : 'MongoDB connection failed'
+    });
+  });
+
+  app.use('/api', websiteRoutes);
+  app.use(express.static(root));
+
+  app.listen(port, host, () => {
+    console.log(`Safe Internet App is listening on http://${host}:${port}`);
+    console.log(`Open http://localhost:${port}/dashboard.html in your browser`);
+    if (!mongoConnected) {
+      console.log('\n⚠️  WARNING: MongoDB is not connected');
+      console.log('   The app will not function until MongoDB is accessible.');
+    }
+  });
+}
+
+startServer();
 
 
