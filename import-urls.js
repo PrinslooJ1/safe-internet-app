@@ -1,8 +1,14 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv is optional; environment variables may already be loaded externally.
+}
 const Website = require('./models/Website');
 
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://jprinsloo2022_db_user:BJJdZDC!4qKC6zB@cluster0.gqsgshy.mongodb.net/?appName=Cluster0';
+const defaultMongoUri = 'mongodb+srv://jprinsloo2022_db_user:BJJdZDC!4qKC6zB@cluster0.gqsgshy.mongodb.net/safeInternetApp?retryWrites=true&w=majority&appName=Cluster0';
+const mongoUri = process.env.MONGODB_URI || defaultMongoUri;
 const mongoDbName = process.env.MONGODB_DB || 'safeInternetApp';
 
 async function importUrls() {

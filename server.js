@@ -1,13 +1,19 @@
 const express = require('express');
 const path = require('node:path');
 const mongoose = require('mongoose');
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv is optional; environment variables may already be loaded externally.
+}
 const websiteRoutes = require('./routes/websites');
 
 const app = express();
 const root = __dirname;
 const port = Number(process.env.PORT || 10000);
 const host = process.env.HOST || '0.0.0.0';
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://jprinsloo2022_db_user:BJJdZDC!4qKC6zB@cluster0.gqsgshy.mongodb.net/?appName=Cluster0';
+const defaultMongoUri = 'mongodb+srv://jprinsloo2022_db_user:BJJdZDC!4qKC6zB@cluster0.gqsgshy.mongodb.net/safeInternetApp?retryWrites=true&w=majority&appName=Cluster0';
+const mongoUri = process.env.MONGODB_URI || defaultMongoUri;
 const mongoDbName = process.env.MONGODB_DB || 'safeInternetApp';
 
 let mongoConnected = false;
