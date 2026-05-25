@@ -744,6 +744,188 @@ function exportCsvData() {
   setDatabaseStatus(`Exported ${urlItems.length} websites to CSV.`);
 }
 
+function parseFavorite(value) {
+  if (typeof value === 'boolean') return value;
+  return /^(1|true|yes|y|starred|favorite|favourite)$/i.test(String(value || '').trim());
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let value = '';
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        value += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        value += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(value);
+      value = '';
+    } else if (char === '\n') {
+      row.push(value);
+      rows.push(row);
+      row = [];
+      value = '';
+    } else if (char !== '\r') {
+      value += char;
+    }
+  }
+
+  row.push(value);
+  rows.push(row);
+  return rows.filter(entry => entry.some(cell => cleanText(cell)));
+}
+
+function normalizeHeader(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function csvHasHeader(row) {
+  const headers = row.map(normalizeHeader);
+  return headers.some(header => ['url', 'website', 'link'].includes(header))
+    && headers.some(header => ['name', 'title', 'description', 'category', 'type'].includes(header));
+}
+
+function csvEntryFromRow(row, headers) {
+  if (!headers) {
+    return {
+      url: row[0],
+      name: row[1],
+      category: row[2],
+      description: row[3],
+      isFavorite: row[4]
+    };
+  }
+
+  const data = {};
+  headers.forEach((header, index) => {
+    data[header] = row[index];
+  });
+
+  return {
+    url: data.url || data.website || data.link,
+    name: data.name || data.title,
+    category: data.category || data.type,
+    description: data.description || data.summary,
+    isFavorite: data.isfavorite || data.favorite || data.favourite || data.starred
+  };
+}
+
+function entriesFromCsv(text) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) return [];
+
+  const hasHeader = csvHasHeader(rows[0]);
+  const headers = hasHeader ? rows.shift().map(normalizeHeader) : null;
+  return rows.map(row => csvEntryFromRow(row, headers));
+}
+
+function entriesFromJson(text) {
+  const parsed = JSON.parse(text);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed.websites)) return parsed.websites;
+  if (Array.isArray(parsed.urls)) {
+    return parsed.urls.map(entry => typeof entry === 'string' ? { url: entry } : entry);
+  }
+  throw new Error('JSON must be an array or contain a websites array.');
+}
+
+function importedUrlFromEntry(entry) {
+  const raw = entry.url || entry.URL || entry.Url || entry.website || entry.Website || entry.link || entry.Link;
+  if (raw) return normalizeInputUrl(raw);
+
+  const domain = entry.domain || entry.Domain;
+  return domain ? normalizeInputUrl(domain) : '';
+}
+
+function normalizeImportedEntry(entry) {
+  const url = importedUrlFromEntry(entry);
+  if (!url) return null;
+
+  const category = normalizeCategory(entry.category || entry.Category || entry.type || entry.Type)
+    || categoryFor(url);
+  const name = cleanText(entry.name || entry.Name || entry.title || entry.Title || entry.Domain)
+    || displayName(url);
+  const description = cleanText(entry.description || entry.Description || entry.summary || entry.Summary)
+    || fallbackDescription(url, name, category);
+
+  return {
+    url,
+    name,
+    category,
+    description,
+    isFavorite: parseFavorite(entry.isFavorite ?? entry.favorite ?? entry.Favorite ?? entry.favourite ?? entry.starred)
+  };
+}
+
+function entriesFromImportFile(file, text) {
+  const lowerName = file.name.toLowerCase();
+  const trimmed = text.trim();
+
+  if (lowerName.endsWith('.csv')) return entriesFromCsv(text);
+  if (lowerName.endsWith('.json')) return entriesFromJson(text);
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return entriesFromJson(text);
+  return entriesFromCsv(text);
+}
+
+async function importDataFromFile(file) {
+  if (!file) return;
+
+  const importButton = document.getElementById('importBtn');
+  importButton.disabled = true;
+  setDatabaseStatus(`Reading ${file.name}...`);
+
+  try {
+    const text = await file.text();
+    const rawEntries = entriesFromImportFile(file, text);
+    const normalizedEntries = rawEntries.map(normalizeImportedEntry).filter(Boolean);
+
+    const seen = new Set(urlItems.map(item => item.url));
+    const imported = [];
+    let skipped = rawEntries.length - normalizedEntries.length;
+
+    for (const entry of normalizedEntries) {
+      if (seen.has(entry.url)) {
+        skipped += 1;
+        continue;
+      }
+
+      const saved = await saveWebsiteToDatabase(entry);
+      const normalized = normalizeEntry(saved, urlItems.length + imported.length + 1);
+      imported.push(normalized);
+      seen.add(normalized.url);
+      setDatabaseStatus(`Imported ${imported.length} of ${normalizedEntries.length} websites...`);
+    }
+
+    urlItems.push(...imported);
+    if (imported.length) current = 'all';
+    render();
+
+    const skippedText = skipped ? ` ${skipped} skipped.` : '';
+    setDatabaseStatus(`Imported ${imported.length} websites from ${file.name}.${skippedText}`);
+  } catch (error) {
+    console.error('Import failed:', error);
+    setDatabaseStatus(`Import failed: ${error.message}`);
+  } finally {
+    importButton.disabled = false;
+  }
+}
+
 async function addWebsite() {
   const urlInput = document.getElementById('siteUrl');
   const nameInput = document.getElementById('siteName');
@@ -807,6 +989,14 @@ document.getElementById('focusBtn').addEventListener('click', () => {
 });
 document.getElementById('exportBtn').addEventListener('click', exportData);
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+document.getElementById('importBtn').addEventListener('click', () => {
+  const fileInput = document.getElementById('importFile');
+  fileInput.value = '';
+  fileInput.click();
+});
+document.getElementById('importFile').addEventListener('change', event => {
+  importDataFromFile(event.target.files[0]);
+});
 
 (async () => {
   try {
