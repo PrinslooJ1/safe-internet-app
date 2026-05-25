@@ -15,21 +15,24 @@ router.get('/websites', async (req, res) => {
 router.post('/websites', async (req, res) => {
   try {
     const { name, url, category, description, isFavorite, favorite } = req.body;
-    if (!name || !url) {
+    const cleanName = String(name || '').trim();
+    const cleanUrl = String(url || '').trim();
+
+    if (!cleanName || !cleanUrl) {
       return res.status(400).json({ error: 'Name and url are required.' });
     }
 
     const update = {
-      name,
-      url,
+      name: cleanName,
+      url: cleanUrl,
       isFavorite: Boolean(isFavorite ?? favorite ?? false)
     };
 
-    if (category) update.category = category;
-    if (description) update.description = description;
+    if (category !== undefined) update.category = String(category || '').trim();
+    if (description !== undefined) update.description = String(description || '').trim();
 
     const site = await Website.findOneAndUpdate(
-      { url },
+      { url: cleanUrl },
       update,
       {
         upsert: true,

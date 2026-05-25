@@ -268,6 +268,8 @@ button.active {
   </div>
   <div class="control-row">
     <input id="siteUrl" placeholder="Add website URL..." autocomplete="off" inputmode="url">
+    <input id="siteName" placeholder="Website name..." autocomplete="off">
+    <input id="siteDescription" placeholder="Website description..." autocomplete="off">
     <button id="addSiteBtn" type="button">Add Website</button>
     <div id="databaseStatus"></div>
   </div>
@@ -743,8 +745,10 @@ function exportCsvData() {
 }
 
 async function addWebsite() {
-  const input = document.getElementById('siteUrl');
-  const url = normalizeInputUrl(input.value);
+  const urlInput = document.getElementById('siteUrl');
+  const nameInput = document.getElementById('siteName');
+  const descriptionInput = document.getElementById('siteDescription');
+  const url = normalizeInputUrl(urlInput.value);
   if (!url) {
     setDatabaseStatus('Enter a valid website URL.');
     return;
@@ -759,9 +763,9 @@ async function addWebsite() {
   setDatabaseStatus('Researching website...');
 
   try {
-    const name = displayName(url);
     const category = categoryFor(url);
-    const description = fallbackDescription(url, name, category);
+    const name = cleanText(nameInput.value) || displayName(url);
+    const description = cleanText(descriptionInput.value) || fallbackDescription(url, name, category);
 
     const item = normalizeEntry({
       url,
@@ -773,7 +777,9 @@ async function addWebsite() {
 
     const saved = await saveWebsiteToDatabase(item);
     urlItems.push(normalizeEntry(saved, urlItems.length + 1));
-    input.value = '';
+    urlInput.value = '';
+    nameInput.value = '';
+    descriptionInput.value = '';
     current = saved.category;
     setDatabaseStatus(`${saved.name} was added to MongoDB.`);
     render();
@@ -786,6 +792,12 @@ async function addWebsite() {
 
 document.getElementById('search').addEventListener('input', render);
 document.getElementById('siteUrl').addEventListener('keydown', event => {
+  if (event.key === 'Enter') addWebsite();
+});
+document.getElementById('siteName').addEventListener('keydown', event => {
+  if (event.key === 'Enter') addWebsite();
+});
+document.getElementById('siteDescription').addEventListener('keydown', event => {
   if (event.key === 'Enter') addWebsite();
 });
 document.getElementById('addSiteBtn').addEventListener('click', addWebsite);
@@ -801,9 +813,9 @@ document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData)
     const statusResponse = await fetch('/api/status');
     const status = await statusResponse.json();
 
-    if (!status.status || status.status === 'disconnected') {
-      document.getElementById('status').innerHTML = '⚠️ MongoDB connection failed. Fix connection or use import.';
-      setDatabaseStatus('MongoDB is not accessible. You can still import data from CSV/JSON.');
+    if (status.status !== 'connected') {
+      document.getElementById('status').textContent = 'MongoDB connection failed.';
+      setDatabaseStatus(status.message || 'MongoDB is not accessible. Check server console.');
       return;
     }
 
