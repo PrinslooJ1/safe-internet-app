@@ -309,6 +309,59 @@ const HOST_CATEGORIES = {};
 let urlItems = [];
 let current = 'all';
 let focusMode = false;
+let databaseConnected = false;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function loadDatabaseStatus() {
+  const response = await fetch('/api/status');
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function waitForMongoConnection(options = {}) {
+  const retries = options.retries ?? 15;
+  const delayMs = options.delayMs ?? 1000;
+  let lastStatus = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      lastStatus = await loadDatabaseStatus();
+      databaseConnected = lastStatus.status === 'connected';
+
+      if (databaseConnected) {
+        document.getElementById('status').textContent = 'MongoDB connected.';
+        return lastStatus;
+      }
+
+      document.getElementById('status').textContent = lastStatus.status === 'connecting'
+        ? 'Connecting to MongoDB...'
+        : 'MongoDB connection failed.';
+      setDatabaseStatus(lastStatus.message || 'MongoDB is not accessible yet.');
+    } catch (error) {
+      databaseConnected = false;
+      lastStatus = { status: 'disconnected', message: error.message };
+      document.getElementById('status').textContent = 'MongoDB connection failed.';
+      setDatabaseStatus(`Could not check MongoDB status: ${error.message}`);
+    }
+
+    if (attempt < retries) await sleep(delayMs);
+  }
+
+  return lastStatus || { status: 'disconnected', message: 'MongoDB is not connected.' };
+}
+
+async function ensureMongoConnection() {
+  if (databaseConnected) return true;
+
+  const status = await waitForMongoConnection({ retries: 5, delayMs: 1000 });
+  if (status.status === 'connected') return true;
+
+  setDatabaseStatus(status.message || 'MongoDB is not connected. Try again after it connects.');
+  return false;
+}
 
 async function loadWebsitesFromDatabase() {
   try {
@@ -888,9 +941,12 @@ async function importDataFromFile(file) {
 
   const importButton = document.getElementById('importBtn');
   importButton.disabled = true;
-  setDatabaseStatus(`Reading ${file.name}...`);
+  setDatabaseStatus('Checking MongoDB connection...');
 
   try {
+    if (!await ensureMongoConnection()) return;
+
+    setDatabaseStatus(`Reading ${file.name}...`);
     const text = await file.text();
     const rawEntries = entriesFromImportFile(file, text);
     const normalizedEntries = rawEntries.map(normalizeImportedEntry).filter(Boolean);
@@ -940,6 +996,8 @@ async function addWebsite() {
     setDatabaseStatus('That website is already in the list.');
     return;
   }
+
+  if (!await ensureMongoConnection()) return;
 
   document.getElementById('addSiteBtn').disabled = true;
   setDatabaseStatus('Researching website...');
@@ -1000,8 +1058,7 @@ document.getElementById('importFile').addEventListener('change', event => {
 
 (async () => {
   try {
-    const statusResponse = await fetch('/api/status');
-    const status = await statusResponse.json();
+    const status = await waitForMongoConnection();
 
     if (status.status !== 'connected') {
       document.getElementById('status').textContent = 'MongoDB connection failed.';
