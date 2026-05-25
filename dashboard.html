@@ -406,6 +406,21 @@ async function deleteWebsiteFromDatabase(id) {
   }
 }
 
+async function researchWebsiteMetadata(url) {
+  const response = await fetch('/api/websites/research', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url })
+  });
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(body.error || `HTTP ${response.status}`);
+  }
+
+  return body;
+}
+
 function cleanUrl(raw) {
   return String(raw || '').trim().replace(/\/$/, '');
 }
@@ -1000,15 +1015,35 @@ async function addWebsite() {
   if (!await ensureMongoConnection()) return;
 
   document.getElementById('addSiteBtn').disabled = true;
-  setDatabaseStatus('Researching website...');
+  setDatabaseStatus('Researching website page...');
 
   try {
-    const category = categoryFor(url);
-    const name = cleanText(nameInput.value) || displayName(url);
-    const description = cleanText(descriptionInput.value) || fallbackDescription(url, name, category);
+    const manualName = cleanText(nameInput.value);
+    const manualDescription = cleanText(descriptionInput.value);
+    let researched = {};
+
+    try {
+      researched = await researchWebsiteMetadata(url);
+    } catch (error) {
+      console.warn('Website research failed, using fallback metadata:', error);
+      setDatabaseStatus(`Could not research page metadata: ${error.message}. Using fallback details.`);
+    }
+
+    const researchedUrl = normalizeInputUrl(researched.url) || url;
+    if (researchedUrl !== url && urlItems.some(item => item.url === researchedUrl)) {
+      setDatabaseStatus('That website is already in the list.');
+      return;
+    }
+
+    const researchedName = cleanText(researched.name);
+    const researchedDescription = cleanText(researched.description);
+    const name = manualName || researchedName || displayName(researchedUrl);
+    let category = categoryFromResearch(researchedUrl, name, researchedDescription);
+    const description = manualDescription || researchedDescription || fallbackDescription(researchedUrl, name, category);
+    category = categoryFromResearch(researchedUrl, name, description);
 
     const item = normalizeEntry({
-      url,
+      url: researchedUrl,
       name,
       category,
       description,
@@ -1021,7 +1056,7 @@ async function addWebsite() {
     nameInput.value = '';
     descriptionInput.value = '';
     current = saved.category;
-    setDatabaseStatus(`${saved.name} was added to MongoDB.`);
+    setDatabaseStatus(`${saved.name} was added to MongoDB with ${researched.description ? researched.source : 'fallback'} details.`);
     render();
   } catch (error) {
     setDatabaseStatus(`Could not add website: ${error.message}`);
