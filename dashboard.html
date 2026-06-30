@@ -248,13 +248,454 @@ button.active {
   #status { text-align: left; margin-top: 6px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 }
+
+/* Glassmorphism Styles */
+.glassmorphic {
+  background: rgba(27, 32, 36, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Auth Screen Container */
+.auth-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, #1b2024 0%, #101214 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(27, 32, 36, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.lock-icon {
+  color: var(--accent);
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba(47, 158, 143, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.lock-icon:hover {
+  transform: scale(1.1);
+}
+
+.auth-card h2 {
+  font-size: 1.4rem;
+  margin: 0 0 6px 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.auth-subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.passcode-display {
+  display: flex;
+  align-items: center;
+  background: rgba(16, 18, 20, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: 100%;
+  padding: 2px 8px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+
+.passcode-display:focus-within {
+  border-color: var(--accent-strong);
+}
+
+.passcode-display input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  padding: 10px 4px;
+  font-size: 1.4rem;
+  letter-spacing: 4px;
+  text-align: center;
+  color: var(--text);
+  outline: none;
+  min-width: 0;
+  flex: 1;
+}
+
+.toggle-visibility {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  font-size: 1.1rem;
+  transition: color 0.2s;
+}
+
+.toggle-visibility:hover {
+  color: var(--text);
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-bottom: 12px;
+  min-height: 18px;
+  text-align: center;
+  width: 100%;
+  font-weight: bold;
+}
+
+/* Numeric Keypad */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.key-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.key-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(47, 158, 143, 0.25);
+}
+
+.key-btn:active {
+  background: var(--accent);
+  color: #061513;
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+.action-key {
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--muted);
+}
+
+.action-key:hover {
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.remember-me-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 18px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.remember-me-container label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.remember-me-container input[type="checkbox"] {
+  width: auto;
+  min-width: auto;
+  flex: none;
+  cursor: pointer;
+  margin: 0;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: 1px solid var(--accent-strong);
+  color: #061513;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-submit-btn:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 0 12px rgba(55, 182, 165, 0.35);
+  transform: translateY(-1px);
+}
+
+.auth-submit-btn:active {
+  transform: translateY(1px);
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 10050;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content {
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  position: relative;
+  animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.close-modal {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-modal:hover {
+  color: var(--text);
+}
+
+.modal h3 {
+  margin: 0 0 18px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.form-group input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+.form-group input:focus {
+  border-color: var(--accent-strong);
+}
+
+.error-msg {
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.success-msg {
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.modal-submit-btn {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: #061513;
+  font-weight: bold;
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.modal-submit-btn:hover {
+  background: var(--accent-strong);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalSlide {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
 </style>
 </head>
 <body>
 
+<!-- Lock/Setup Screen -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-header">
+      <!-- Animated SVG Lock icon -->
+      <svg id="lock-icon" class="lock-icon" viewBox="0 0 24 24" width="48" height="48">
+        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" fill="currentColor"/>
+      </svg>
+      <h2 id="auth-title">Safe Internet App Locked</h2>
+      <p id="auth-subtitle" class="auth-subtitle">Enter passcode to access websites</p>
+    </div>
+
+    <!-- Passcode Display (dots/stars) -->
+    <div class="passcode-display">
+      <input type="password" id="passcode-input" maxlength="12" readonly placeholder="••••">
+      <button type="button" id="toggle-visibility" class="toggle-visibility" title="Show/Hide">👁️</button>
+    </div>
+
+    <!-- Confirmation field for setup mode -->
+    <div id="confirm-passcode-group" class="passcode-display" style="display: none;">
+      <input type="password" id="confirm-passcode-input" maxlength="12" readonly placeholder="Confirm ••••">
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Keypad -->
+    <div class="keypad">
+      <button type="button" class="key-btn" data-val="1">1</button>
+      <button type="button" class="key-btn" data-val="2">2</button>
+      <button type="button" class="key-btn" data-val="3">3</button>
+      <button type="button" class="key-btn" data-val="4">4</button>
+      <button type="button" class="key-btn" data-val="5">5</button>
+      <button type="button" class="key-btn" data-val="6">6</button>
+      <button type="button" class="key-btn" data-val="7">7</button>
+      <button type="button" class="key-btn" data-val="8">8</button>
+      <button type="button" class="key-btn" data-val="9">9</button>
+      <button type="button" class="key-btn action-key" id="key-clear" title="Clear">C</button>
+      <button type="button" class="key-btn" data-val="0">0</button>
+      <button type="button" class="key-btn action-key" id="key-backspace" title="Delete">⌫</button>
+    </div>
+
+    <div class="remember-me-container" id="remember-me-container">
+      <label>
+        <input type="checkbox" id="remember-me-checkbox" checked>
+        Keep me logged in on this device
+      </label>
+    </div>
+
+    <button type="button" id="auth-submit-btn" class="auth-submit-btn">Unlock</button>
+  </div>
+</div>
+
+<!-- Change Passcode Modal -->
+<div id="security-modal" class="modal">
+  <div class="modal-content glassmorphic">
+    <span class="close-modal" id="closeSecurityModal">&times;</span>
+    <h3>Security Settings</h3>
+    <form id="change-passcode-form">
+      <div class="form-group">
+        <label for="current-passcode">Current Passcode</label>
+        <input type="password" id="current-passcode" required autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label for="new-passcode">New Passcode (min 4 characters)</label>
+        <input type="password" id="new-passcode" required autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="confirm-new-passcode">Confirm New Passcode</label>
+        <input type="password" id="confirm-new-passcode" required autocomplete="new-password">
+      </div>
+      <div id="change-error" class="error-msg"></div>
+      <div id="change-success" class="success-msg"></div>
+      <button type="submit" class="modal-submit-btn">Update Passcode</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main App Container (Hidden until authenticated) -->
+<div id="app-container" style="display: none;">
+
 <header>
   <h1>Safe Internet App</h1>
-  <div id="status">Loading URLs from MongoDB...</div>
+  <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <button id="lockBtn" type="button" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.88rem;">
+      🔒 Lock Session
+    </button>
+    <div id="status">Loading URLs from MongoDB...</div>
+  </div>
 </header>
 
 <div id="controls">
@@ -264,6 +705,7 @@ button.active {
     <button id="exportBtn" type="button">Export JSON</button>
     <button id="exportCsvBtn" type="button">Export CSV</button>
     <button id="importBtn" type="button">Import JSON/CSV</button>
+    <button id="securityBtn" type="button">Security Settings</button>
     <input id="importFile" class="visually-hidden" type="file" accept=".json,.csv,application/json,text/csv">
   </div>
   <div class="control-row">
@@ -277,6 +719,7 @@ button.active {
 </div>
 
 <div class="grid" id="grid"></div>
+</div> <!-- End #app-container -->
 
 <script src="urls.js"></script>
 <script>
@@ -311,12 +754,29 @@ let current = 'all';
 let focusMode = false;
 let databaseConnected = false;
 
+function getAuthHeaders(customHeaders = {}) {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  const headers = { ...customHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function handleUnauthorized() {
+  localStorage.removeItem('auth_token');
+  sessionStorage.removeItem('auth_token');
+  document.getElementById('app-container').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  checkAuthStatus();
+}
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function loadDatabaseStatus() {
-  const response = await fetch('/api/status');
+  const response = await fetch('/api/status', { headers: getAuthHeaders() });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
@@ -365,7 +825,11 @@ async function ensureMongoConnection() {
 
 async function loadWebsitesFromDatabase() {
   try {
-    const response = await fetch('/api/websites');
+    const response = await fetch('/api/websites', { headers: getAuthHeaders() });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return [];
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -378,7 +842,7 @@ async function saveWebsiteToDatabase(item) {
   try {
     const response = await fetch('/api/websites', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         url: item.url,
         name: item.name,
@@ -387,6 +851,10 @@ async function saveWebsiteToDatabase(item) {
         isFavorite: item.isFavorite
       })
     });
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new Error('Unauthorized');
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -397,7 +865,14 @@ async function saveWebsiteToDatabase(item) {
 
 async function deleteWebsiteFromDatabase(id) {
   try {
-    const response = await fetch(`/api/websites/${id}`, { method: 'DELETE' });
+    const response = await fetch(`/api/websites/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new Error('Unauthorized');
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -409,9 +884,13 @@ async function deleteWebsiteFromDatabase(id) {
 async function researchWebsiteMetadata(url) {
   const response = await fetch('/api/websites/research', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ url })
   });
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error('Unauthorized');
+  }
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -1091,7 +1570,176 @@ document.getElementById('importFile').addEventListener('change', event => {
   importDataFromFile(event.target.files[0]);
 });
 
-(async () => {
+// Auth and Security Panel implementation
+let isSetupMode = false;
+let currentPasscodeAttempt = '';
+let currentConfirmAttempt = '';
+let enteringConfirm = false;
+let passwordVisible = false;
+
+function resetAuthInputs() {
+  currentPasscodeAttempt = '';
+  currentConfirmAttempt = '';
+  enteringConfirm = false;
+  document.getElementById('passcode-input').value = '';
+  document.getElementById('confirm-passcode-input').value = '';
+  document.getElementById('confirm-passcode-group').style.display = 'none';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function renderMaskedInputs() {
+  const mainInput = document.getElementById('passcode-input');
+  const confirmInput = document.getElementById('confirm-passcode-input');
+  
+  if (passwordVisible) {
+    mainInput.value = currentPasscodeAttempt;
+    confirmInput.value = currentConfirmAttempt;
+  } else {
+    mainInput.value = '•'.repeat(currentPasscodeAttempt.length);
+    confirmInput.value = '•'.repeat(currentConfirmAttempt.length);
+  }
+}
+
+function handleKeypadPress(val) {
+  if (enteringConfirm) {
+    if (currentConfirmAttempt.length < 12) {
+      currentConfirmAttempt += val;
+    }
+  } else {
+    if (currentPasscodeAttempt.length < 12) {
+      currentPasscodeAttempt += val;
+    }
+  }
+  renderMaskedInputs();
+}
+
+function handleKeypadBackspace() {
+  if (enteringConfirm) {
+    if (currentConfirmAttempt.length > 0) {
+      currentConfirmAttempt = currentConfirmAttempt.slice(0, -1);
+    } else {
+      enteringConfirm = false;
+      document.getElementById('confirm-passcode-group').style.display = 'none';
+      document.getElementById('auth-submit-btn').textContent = 'Set Passcode';
+      document.getElementById('auth-subtitle').textContent = 'Set up a passcode to secure this site';
+      showAuthError('');
+    }
+  } else {
+    if (currentPasscodeAttempt.length > 0) {
+      currentPasscodeAttempt = currentPasscodeAttempt.slice(0, -1);
+    }
+  }
+  renderMaskedInputs();
+}
+
+function showAuthError(msg) {
+  const errDiv = document.getElementById('auth-error');
+  errDiv.textContent = msg;
+  if (msg) {
+    const card = document.querySelector('.auth-card');
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+  }
+}
+
+async function submitAuth() {
+  showAuthError('');
+  
+  if (isSetupMode) {
+    if (currentPasscodeAttempt.length < 4) {
+      showAuthError('Passcode must be at least 4 characters.');
+      return;
+    }
+    
+    if (!enteringConfirm) {
+      enteringConfirm = true;
+      document.getElementById('confirm-passcode-group').style.display = 'flex';
+      document.getElementById('auth-submit-btn').textContent = 'Confirm & Set';
+      document.getElementById('auth-subtitle').textContent = 'Confirm your secure passcode';
+      renderMaskedInputs();
+      return;
+    }
+    
+    if (currentPasscodeAttempt !== currentConfirmAttempt) {
+      showAuthError('Passcodes do not match. Try again.');
+      resetAuthInputs();
+      enteringConfirm = false;
+      document.getElementById('auth-submit-btn').textContent = 'Set Passcode';
+      document.getElementById('auth-subtitle').textContent = 'Set up a passcode to secure this site';
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/auth/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: currentPasscodeAttempt })
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        showAuthError(data.error || 'Setup failed.');
+        return;
+      }
+      
+      sessionStorage.setItem('auth_token', data.token);
+      checkAuthStatus();
+    } catch (err) {
+      showAuthError('Setup request failed. Check server.');
+    }
+  } else {
+    if (currentPasscodeAttempt.length < 4) {
+      showAuthError('Passcode must be at least 4 characters.');
+      return;
+    }
+    
+    const rememberMe = document.getElementById('remember-me-checkbox').checked;
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: currentPasscodeAttempt, rememberMe })
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        showAuthError(data.error || 'Incorrect passcode.');
+        currentPasscodeAttempt = '';
+        renderMaskedInputs();
+        return;
+      }
+      
+      if (rememberMe) {
+        localStorage.setItem('auth_token', data.token);
+      } else {
+        sessionStorage.setItem('auth_token', data.token);
+      }
+      
+      const lockIcon = document.getElementById('lock-icon');
+      lockIcon.style.transform = 'rotate(-15deg) scale(1.1)';
+      setTimeout(() => {
+        checkAuthStatus();
+      }, 300);
+    } catch (err) {
+      showAuthError('Authentication request failed.');
+    }
+  }
+}
+
+async function lockSession() {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+  } catch (err) {
+    console.warn('Logout endpoint request failed:', err);
+  }
+  handleUnauthorized();
+}
+
+async function initApp() {
   try {
     const status = await waitForMongoConnection();
 
@@ -1112,6 +1760,156 @@ document.getElementById('importFile').addEventListener('change', event => {
     document.getElementById('status').innerHTML = '⚠️ Connection error. Check console.';
     setDatabaseStatus('Failed to load from MongoDB. Try importing CSV/JSON.');
   }
+}
+
+async function checkAuthStatus() {
+  try {
+    const response = await fetch('/api/auth/status', { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Status request failed');
+    const data = await response.json();
+
+    if (!data.isSet) {
+      isSetupMode = true;
+      enteringConfirm = false;
+      resetAuthInputs();
+      document.getElementById('auth-title').textContent = 'Create Security Passcode';
+      document.getElementById('auth-subtitle').textContent = 'Set up a passcode to secure this site (min 4 chars)';
+      document.getElementById('remember-me-container').style.display = 'none';
+      document.getElementById('auth-submit-btn').textContent = 'Set Passcode';
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+    } else if (!data.isAuthenticated) {
+      isSetupMode = false;
+      enteringConfirm = false;
+      resetAuthInputs();
+      document.getElementById('auth-title').textContent = 'Safe Internet App Locked';
+      document.getElementById('auth-subtitle').textContent = 'Enter passcode to access websites';
+      document.getElementById('remember-me-container').style.display = 'flex';
+      document.getElementById('auth-submit-btn').textContent = 'Unlock';
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+    } else {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app-container').style.display = 'block';
+      if (urlItems.length === 0) {
+        await initApp();
+      }
+    }
+  } catch (error) {
+    console.error('Failed to verify auth status:', error);
+    showAuthError('Connection error. Is server running?');
+  }
+}
+
+// Event Listeners for Lock screen
+document.querySelectorAll('.key-btn[data-val]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    handleKeypadPress(btn.getAttribute('data-val'));
+  });
+});
+
+document.getElementById('key-backspace').addEventListener('click', handleKeypadBackspace);
+document.getElementById('key-clear').addEventListener('click', resetAuthInputs);
+document.getElementById('auth-submit-btn').addEventListener('click', submitAuth);
+
+document.getElementById('toggle-visibility').addEventListener('click', () => {
+  passwordVisible = !passwordVisible;
+  const mainInput = document.getElementById('passcode-input');
+  const confirmInput = document.getElementById('confirm-passcode-input');
+  const type = passwordVisible ? 'text' : 'password';
+  mainInput.type = type;
+  confirmInput.type = type;
+  document.getElementById('toggle-visibility').textContent = passwordVisible ? '🙈' : '👁️';
+  renderMaskedInputs();
+});
+
+// Keyboard support
+document.addEventListener('keydown', event => {
+  if (document.getElementById('auth-screen').style.display !== 'none') {
+    if (event.key >= '0' && event.key <= '9') {
+      handleKeypadPress(event.key);
+    } else if (event.key === 'Backspace') {
+      handleKeypadBackspace();
+    } else if (event.key === 'Enter') {
+      submitAuth();
+    } else if (event.key === 'Escape') {
+      resetAuthInputs();
+    }
+  }
+});
+
+// Lock button
+document.getElementById('lockBtn').addEventListener('click', lockSession);
+
+// Security Settings modal
+document.getElementById('securityBtn').addEventListener('click', () => {
+  document.getElementById('security-modal').style.display = 'flex';
+  document.getElementById('change-error').textContent = '';
+  document.getElementById('change-success').textContent = '';
+  document.getElementById('change-passcode-form').reset();
+});
+
+document.getElementById('closeSecurityModal').addEventListener('click', () => {
+  document.getElementById('security-modal').style.display = 'none';
+});
+
+window.addEventListener('click', event => {
+  const modal = document.getElementById('security-modal');
+  if (event.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+document.getElementById('change-passcode-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  
+  const currentPasscode = document.getElementById('current-passcode').value;
+  const newPasscode = document.getElementById('new-passcode').value;
+  const confirmNew = document.getElementById('confirm-new-passcode').value;
+  
+  const errorDiv = document.getElementById('change-error');
+  const successDiv = document.getElementById('change-success');
+  
+  errorDiv.textContent = '';
+  successDiv.textContent = '';
+  
+  if (newPasscode.length < 4) {
+    errorDiv.textContent = 'New passcode must be at least 4 characters.';
+    return;
+  }
+  
+  if (newPasscode !== confirmNew) {
+    errorDiv.textContent = 'New passcodes do not match.';
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/auth/change', {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ currentPasscode, newPasscode })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      errorDiv.textContent = data.error || 'Failed to change passcode.';
+      return;
+    }
+    
+    successDiv.textContent = 'Passcode changed successfully!';
+    document.getElementById('change-passcode-form').reset();
+    
+    setTimeout(() => {
+      document.getElementById('security-modal').style.display = 'none';
+    }, 1500);
+  } catch (err) {
+    errorDiv.textContent = 'Request failed. Check your server.';
+  }
+});
+
+// Run auth check on load
+checkAuthStatus();
 })();
 </script>
 

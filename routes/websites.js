@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Website = require('../models/Website');
+const authMiddleware = require('../middleware/auth');
+
+router.use(authMiddleware);
 
 const RESEARCH_TIMEOUT_MS = 12000;
 

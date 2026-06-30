@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const mongoose = require('mongoose');
 const websiteRoutes = require('./routes/websites');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const root = __dirname;
@@ -88,6 +89,7 @@ app.get('/api/status', (req, res) => {
   res.json(mongoStatus());
 });
 
+app.use('/api', authRoutes);
 app.use('/api', websiteRoutes);
 app.use(express.static(root));
 
